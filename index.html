@@ -15,87 +15,51 @@
     ::-webkit-scrollbar-track { background: #f5ece6; }
     ::-webkit-scrollbar-thumb { background: #c4755a; border-radius: 3px; }
     @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes slideIn { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect } = React;
+const { useState, useEffect, useMemo } = React;
 
-const ADMIN_PWD = "280623";
-const KEYS = { tasks:"w-tasks3", providers:"w-providers3", rooms:"w-rooms3" };
-function lsLoad(key) { try { const v=localStorage.getItem(key); return v?JSON.parse(v):null; } catch { return null; } }
-function lsSave(key,data) { try { localStorage.setItem(key,JSON.stringify(data)); } catch(e) { console.error(e); } }
-
-/*
-  Bed structure:
-    Standard bed:  { bedId, bedType, guests:[] }
-    Per-night bed: { bedId, bedType, note, night1:[], night2:[] }
+/* ─── Roles & Passwords ───────────────────────────────────
+   guest       : no password  → tasks (read) + rooms (read)
+   weddingPlanner: 150726     → tasks (full) + rooms (full)
+   admin       : 280623       → everything including providers
 */
+const ROLES = {
+  guest:           { label:"Invité",           color:"#8b6355" },
+  weddingPlanner:  { label:"Wedding Planner",  color:"#c47c2a" },
+  admin:           { label:"Admin",            color:"#c4755a" },
+};
+const PASSWORDS = { weddingPlanner:"150726", admin:"280623" };
 
-const initRooms = [
-  {
-    id:1, name:"Chambre bleue", location:"",
-    beds:[ { bedId:"b1-1", bedType:"Double", guests:["Anthony","Charlotte"] } ]
-  },
-  {
-    id:2, name:"Chambre Elle", location:"",
-    beds:[ { bedId:"b2-1", bedType:"Double", guests:["Ryan"] } ]
-  },
-  {
-    id:3, name:"Gite Rive droite", location:"",
-    beds:[
-      { bedId:"b3-1", bedType:"Double",          guests:["Miangaly","Nantenaina"] },
-      { bedId:"b3-2", bedType:"Twin",             guests:["Père Gaston"] },
-      { bedId:"b3-3", bedType:"Lit convertible",  guests:["Andoniaina"] }
-    ]
-  },
-  {
-    id:4, name:"Gite Rive Gauche", location:"",
-    beds:[
-      { bedId:"b4-1", bedType:"Double",           guests:["Michèle","Ando"] },
-      { bedId:"b4-2", bedType:"Twin",              guests:["Toavina","Rasanda"] },
-      { bedId:"b4-3", bedType:"Lit convertible",  guests:["Tsiro"] }
-    ]
-  },
-  {
-    id:5, name:"Suite du Lac", location:"",
-    beds:[ { bedId:"b5-1", bedType:"Double", guests:["Tinah","Toky"] } ]
-  },
-  {
-    id:6, name:"Suite familiale", location:"",
-    beds:[ { bedId:"b6-1", bedType:"Double + Twin", guests:["Hayara"] } ]
-  },
-  {
-    id:7, name:"Suite or", location:"",
-    beds:[
-      { bedId:"b7-1", bedType:"Twin",   guests:["Alex","Anteh"] },
-      { bedId:"b7-2", bedType:"Double", guests:["Salohy","Célin"] }
-    ]
-  },
-  {
-    id:8, name:"Suite vision", location:"",
-    beds:[
-      {
-        bedId:"b8-1",
-        bedType:"Lit convertible → Double",
-        note:"Lit convertible nuit 1, lit double nuit 2 — Ilo rejoint ce lit la 2ème nuit",
-        night1:["Phrad","Haingotiana"],
-        night2:["Phrad","Haingotiana","Ilo"]
-      },
-      {
-        bedId:"b8-2",
-        bedType:"Lit convertible",
-        note:"Ilo part sur l'autre lit la 2ème nuit",
-        night1:["Ilo","Oliva"],
-        night2:["Oliva"]
-      }
-    ]
-  },
-];
+const KEYS = { tasks:"w-tasks4", providers:"w-providers4", rooms:"w-rooms4" };
+function lsLoad(key) { try { const v=localStorage.getItem(key); return v?JSON.parse(v):null; } catch { return null; } }
+function lsSave(key,data) { try { localStorage.setItem(key,JSON.stringify(data)); } catch(e) {} }
 
-const initGuests = [
+/* ─── Category colours for planning ────────────────────── */
+const CAT_COLORS = {
+  "Organisation": { bg:"#e8f4fd", border:"#5b9ec9", dot:"#5b9ec9" },
+  "Traiteur":     { bg:"#fef3e2", border:"#e6a020", dot:"#e6a020" },
+  "Photographe":  { bg:"#f3e8ff", border:"#9b59b6", dot:"#9b59b6" },
+  "Fleuriste":    { bg:"#fce8f5", border:"#d45c9b", dot:"#d45c9b" },
+  "Décoration":   { bg:"#e8f5e9", border:"#3a9d5d", dot:"#3a9d5d" },
+  "Lieu":         { bg:"#fff0e8", border:"#c4755a", dot:"#c4755a" },
+  "Illustratrice":{ bg:"#f0f8e8", border:"#7ab648", dot:"#7ab648" },
+  "Autre":        { bg:"#f5f5f5", border:"#999",    dot:"#999"    },
+};
+const catColor = (cat) => CAT_COLORS[cat] || CAT_COLORS["Autre"];
+
+/* ─── BED helpers ───────────────────────────────────────── */
+const BED_COLORS={"Double":"#e8f4fd","Twin":"#fff0f0","Lit convertible":"#fafae8","Double + Twin":"#fce8f5","Lit convertible → Double":"#f0eeff"};
+const BED_ICONS ={"Double":"🛏","Twin":"🛏🛏","Lit convertible":"🛋","Double + Twin":"🛏 + 🛋","Lit convertible → Double":"🛋 → 🛏"};
+function bedGuests(bed,night){ if(bed.night1) return night===1?(bed.night1||[]):(bed.night2||[]); return bed.guests||[]; }
+
+/* ─── Initial data ──────────────────────────────────────── */
+const initGuests=[
   {id:1,name:"Anthony",group:"Couple"},{id:2,name:"Charlotte",group:"Couple"},
   {id:3,name:"Ryan",group:"Famille"},{id:4,name:"Miangaly",group:"Famille"},
   {id:5,name:"Nantenaina",group:"Famille"},{id:6,name:"Père Gaston",group:"Famille"},
@@ -110,13 +74,41 @@ const initGuests = [
   {id:23,name:"Oliva",group:"Amis"},
 ];
 
-const initTasks = [
-  {id:1,title:"Confirmer le menu",assignee:"Michèle",category:"Traiteur",status:"todo",note:"",datetime:"2026-06-01T10:00",location:""},
-  {id:2,title:"Récupérer les alliances",assignee:"Anthony",category:"Organisation",status:"todo",note:"",datetime:"2026-07-14T09:00",location:"Bijouterie"},
-  {id:3,title:"Décoration salle",assignee:"Hayara",category:"Décoration",status:"todo",note:"",datetime:"2026-07-15T08:00",location:"Château"},
+const initRooms=[
+  {id:1,name:"Chambre bleue",location:"",beds:[{bedId:"b1-1",bedType:"Double",guests:["Anthony","Charlotte"]}]},
+  {id:2,name:"Chambre Elle",location:"",beds:[{bedId:"b2-1",bedType:"Double",guests:["Ryan"]}]},
+  {id:3,name:"Gite Rive droite",location:"",beds:[
+    {bedId:"b3-1",bedType:"Double",guests:["Miangaly","Nantenaina"]},
+    {bedId:"b3-2",bedType:"Twin",guests:["Père Gaston"]},
+    {bedId:"b3-3",bedType:"Lit convertible",guests:["Andoniaina"]},
+  ]},
+  {id:4,name:"Gite Rive Gauche",location:"",beds:[
+    {bedId:"b4-1",bedType:"Double",guests:["Michèle","Ando"]},
+    {bedId:"b4-2",bedType:"Twin",guests:["Toavina","Rasanda"]},
+    {bedId:"b4-3",bedType:"Lit convertible",guests:["Tsiro"]},
+  ]},
+  {id:5,name:"Suite du Lac",location:"",beds:[{bedId:"b5-1",bedType:"Double",guests:["Tinah","Toky"]}]},
+  {id:6,name:"Suite familiale",location:"",beds:[{bedId:"b6-1",bedType:"Double + Twin",guests:["Hayara"]}]},
+  {id:7,name:"Suite or",location:"",beds:[
+    {bedId:"b7-1",bedType:"Twin",guests:["Alex","Anteh"]},
+    {bedId:"b7-2",bedType:"Double",guests:["Salohy","Célin"]},
+  ]},
+  {id:8,name:"Suite vision",location:"",beds:[
+    {bedId:"b8-1",bedType:"Lit convertible → Double",note:"Lit convertible nuit 1, lit double nuit 2 — Ilo rejoint ce lit la 2ème nuit",night1:["Phrad","Haingotiana"],night2:["Phrad","Haingotiana","Ilo"]},
+    {bedId:"b8-2",bedType:"Lit convertible",note:"Ilo part sur l'autre lit la 2ème nuit",night1:["Ilo","Oliva"],night2:["Oliva"]},
+  ]},
 ];
 
-const initProviders = [
+const initTasks=[
+  {id:1,title:"Arrivée des invités",assignee:"Anthony",category:"Organisation",status:"todo",note:"",date:"2026-07-14",startTime:"15:00",endTime:"18:00",location:"Entrée du domaine"},
+  {id:2,title:"Dîner de répétition",assignee:"Michèle",category:"Traiteur",status:"todo",note:"",date:"2026-07-14",startTime:"19:30",endTime:"22:30",location:"Salle principale"},
+  {id:3,title:"Préparatifs mariée",assignee:"Charlotte",category:"Organisation",status:"todo",note:"",date:"2026-07-15",startTime:"09:00",endTime:"12:00",location:"Suite du Lac"},
+  {id:4,title:"Cérémonie",assignee:"Anthony",category:"Lieu",status:"todo",note:"",date:"2026-07-15",startTime:"14:00",endTime:"15:30",location:"Chapelle"},
+  {id:5,title:"Cocktail",assignee:"Hayara",category:"Décoration",status:"todo",note:"Décoration florale",date:"2026-07-15",startTime:"15:30",endTime:"18:00",location:"Terrasse"},
+  {id:6,title:"Dîner & Soirée",assignee:"Michèle",category:"Traiteur",status:"todo",note:"",date:"2026-07-15",startTime:"19:00",endTime:"23:59",location:"Salle de réception"},
+];
+
+const initProviders=[
   {id:1,name:"Traiteur",category:"Traiteur / Restauration",contact:"",email:"",note:"",status:"confirmed"},
   {id:2,name:"Photographe",category:"Photographe / Vidéaste",contact:"",email:"",note:"",status:"pending"},
   {id:3,name:"Fleuriste",category:"Fleuriste / Décoration",contact:"",email:"",note:"",status:"pending"},
@@ -124,26 +116,20 @@ const initProviders = [
   {id:5,name:"Illustratrice",category:"Illustratrice",contact:"",email:"",note:"",status:"inprogress"},
 ];
 
+/* ─── Shared styles ─────────────────────────────────────── */
 const iStyle={width:"100%",padding:"0.6rem 0.8rem",border:"1.5px solid #d9c9bf",borderRadius:"0.6rem",fontFamily:"'Lora',serif",fontSize:"0.88rem",color:"#2c1810",background:"#fffaf7",outline:"none",boxSizing:"border-box"};
 const lStyle={display:"block",marginBottom:"0.3rem",fontSize:"0.73rem",fontWeight:"700",color:"#8b6355",letterSpacing:"0.06em",textTransform:"uppercase"};
 const btnP={background:"linear-gradient(135deg,#c4755a,#a85840)",color:"white",border:"none",borderRadius:"0.7rem",padding:"0.65rem 1.3rem",fontFamily:"'Lora',serif",fontSize:"0.88rem",cursor:"pointer",fontWeight:"600"};
 const btnS={background:"transparent",color:"#8b6355",border:"1.5px solid #d9c9bf",borderRadius:"0.7rem",padding:"0.6rem 1.1rem",fontFamily:"'Lora',serif",fontSize:"0.88rem",cursor:"pointer"};
 
-const BED_COLORS={"Double":"#e8f4fd","Twin":"#fff0f0","Lit convertible":"#fafae8","Double + Twin":"#fce8f5","Lit convertible → Double":"#f0eeff","Suite":"#f3e8ff","Mixte":"#f5f5f5"};
-const BED_ICONS={"Double":"🛏","Twin":"🛏🛏","Lit convertible":"🛋","Double + Twin":"🛏 + 🛋","Lit convertible → Double":"🛋 → 🛏","Suite":"👑","Mixte":"🏠"};
-
-function bedGuests(bed, night) {
-  if (bed.night1) return night === 1 ? (bed.night1||[]) : (bed.night2||[]);
-  return bed.guests || [];
-}
-
-function Badge({status}) {
+/* ─── Components ─────────────────────────────────────────── */
+function Badge({status}){
   const m={todo:{l:"À faire",bg:"#f0e6e0",c:"#8b6355"},inprogress:{l:"En cours",bg:"#fef3e2",c:"#c47c2a"},done:{l:"Fait ✓",bg:"#e8f5e9",c:"#3a7d44"},confirmed:{l:"Confirmé",bg:"#e8f5e9",c:"#3a7d44"},pending:{l:"En attente",bg:"#fef3e2",c:"#c47c2a"}};
   const s=m[status]||m.todo;
   return <span style={{background:s.bg,color:s.c,borderRadius:"2rem",padding:"0.18rem 0.65rem",fontSize:"0.73rem",fontWeight:"700"}}>{s.l}</span>;
 }
 
-function Modal({title,onClose,children}) {
+function Modal({title,onClose,children}){
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(15,10,8,0.72)",backdropFilter:"blur(5px)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
       <div style={{background:"#fdf8f4",borderRadius:"1.5rem",padding:"2rem",width:"100%",maxWidth:"520px",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(15,10,8,0.35)",animation:"fadeIn 0.2s ease"}}>
@@ -157,20 +143,22 @@ function Modal({title,onClose,children}) {
   );
 }
 
-function AdminLock({onUnlock,onCancel}) {
+/* ─── Login overlay ──────────────────────────────────────── */
+function LoginOverlay({targetRole,onSuccess,onCancel}){
   const [pwd,setPwd]=useState("");
   const [err,setErr]=useState(false);
   const [shake,setShake]=useState(false);
   const tryLogin=()=>{
-    if(pwd===ADMIN_PWD){onUnlock();}
+    if(pwd===PASSWORDS[targetRole]){onSuccess();}
     else{setErr(true);setShake(true);setTimeout(()=>setShake(false),500);setPwd("");}
   };
+  const labels={weddingPlanner:"Wedding Planner",admin:"Admin"};
   return (
     <div style={{position:"fixed",inset:0,background:"linear-gradient(160deg,#3d1f15,#6b2d1a,#2c1510)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000}}>
       <div style={{textAlign:"center",padding:"2.5rem",background:"rgba(253,248,244,0.06)",borderRadius:"2rem",border:"1px solid rgba(255,255,255,0.1)",backdropFilter:"blur(10px)",width:"320px",animation:shake?"shake 0.4s ease":"fadeIn 0.3s ease"}}>
-        <div style={{fontSize:"2.5rem",marginBottom:"1rem"}}>🔐</div>
-        <h2 style={{fontFamily:"'Playfair Display',serif",color:"#fdf8f4",fontSize:"1.4rem",fontWeight:"400",margin:"0 0 0.4rem"}}>Espace Admin</h2>
-        <p style={{color:"#e8c4a8",fontSize:"0.82rem",margin:"0 0 1.5rem",fontStyle:"italic"}}>Accès réservé aux organisateurs</p>
+        <div style={{fontSize:"2.5rem",marginBottom:"1rem"}}>{targetRole==="admin"?"🔐":"💼"}</div>
+        <h2 style={{fontFamily:"'Playfair Display',serif",color:"#fdf8f4",fontSize:"1.4rem",fontWeight:"400",margin:"0 0 0.3rem"}}>Espace {labels[targetRole]}</h2>
+        <p style={{color:"#e8c4a8",fontSize:"0.8rem",margin:"0 0 1.5rem",fontStyle:"italic"}}>Accès restreint</p>
         <input type="password" value={pwd} onChange={e=>{setPwd(e.target.value);setErr(false);}} onKeyDown={e=>e.key==="Enter"&&tryLogin()} placeholder="Mot de passe"
           style={{...iStyle,background:"rgba(255,255,255,0.1)",border:`1.5px solid ${err?"#e07070":"rgba(255,255,255,0.2)"}`,color:"white",textAlign:"center",letterSpacing:"0.2em",fontSize:"1.1rem",marginBottom:"0.5rem"}}/>
         {err&&<p style={{color:"#e07070",fontSize:"0.8rem",margin:"0 0 0.8rem",fontStyle:"italic"}}>Mot de passe incorrect</p>}
@@ -181,82 +169,190 @@ function AdminLock({onUnlock,onCancel}) {
   );
 }
 
-/* ═══════════════════════════════ TASKS ═══════════════════════════════ */
-function TasksTab({tasks,setTasks,guests,isAdmin}) {
+/* ══════════════════════════════════════════════════════════
+   TASKS — Planning view
+══════════════════════════════════════════════════════════ */
+function TasksTab({tasks,setTasks,guests,canEdit}){
   const [showModal,setShowModal]=useState(false);
   const [editT,setEditT]=useState(null);
-  const blank={title:"",assignee:"",category:"Organisation",status:"todo",note:"",datetime:"",location:""};
+  const blank={title:"",assignee:"",category:"Organisation",status:"todo",note:"",date:"2026-07-15",startTime:"09:00",endTime:"10:00",location:""};
   const [form,setForm]=useState(blank);
-  const [filter,setFilter]=useState("all");
+  const [filterDate,setFilterDate]=useState("all");
   const [filterPerson,setFilterPerson]=useState("all");
+  const [expandedId,setExpandedId]=useState(null);
   const cats=["Organisation","Traiteur","Photographe","Fleuriste","Décoration","Lieu","Illustratrice","Autre"];
   const people=[...new Set(guests.map(g=>g.name))].sort();
 
-  const openNew=()=>{if(!isAdmin)return;setEditT(null);setForm(blank);setShowModal(true);};
-  const openEdit=(t)=>{if(!isAdmin)return;setEditT(t);setForm({...t});setShowModal(true);};
+  const openNew=()=>{if(!canEdit)return;setEditT(null);setForm(blank);setShowModal(true);};
+  const openEdit=(t,e)=>{e.stopPropagation();if(!canEdit)return;setEditT(t);setForm({...t});setShowModal(true);};
   const saveFn=()=>{
     if(!form.title.trim())return;
     const updated=editT?tasks.map(t=>t.id===editT.id?{...form,id:editT.id}:t):[...tasks,{...form,id:Date.now()}];
     setTasks(updated);lsSave(KEYS.tasks,updated);setShowModal(false);
   };
-  const del=(id)=>{const u=tasks.filter(t=>t.id!==id);setTasks(u);lsSave(KEYS.tasks,u);};
-  const cycle=(task)=>{const c={todo:"inprogress",inprogress:"done",done:"todo"};const u=tasks.map(t=>t.id===task.id?{...t,status:c[t.status]}:t);setTasks(u);lsSave(KEYS.tasks,u);};
+  const del=(id,e)=>{e.stopPropagation();const u=tasks.filter(t=>t.id!==id);setTasks(u);lsSave(KEYS.tasks,u);};
+  const cycleStatus=(task,e)=>{e.stopPropagation();const c={todo:"inprogress",inprogress:"done",done:"todo"};const u=tasks.map(t=>t.id===task.id?{...t,status:c[t.status]}:t);setTasks(u);lsSave(KEYS.tasks,u);};
 
-  let filtered=[...tasks];
-  if(filter!=="all")filtered=filtered.filter(t=>t.status===filter);
-  if(filterPerson!=="all")filtered=filtered.filter(t=>t.assignee===filterPerson);
-  const counts={todo:tasks.filter(t=>t.status==="todo").length,inprogress:tasks.filter(t=>t.status==="inprogress").length,done:tasks.filter(t=>t.status==="done").length};
+  // Get unique dates
+  const dates=[...new Set(tasks.map(t=>t.date||"2026-07-15"))].sort();
+
+  const filtered=useMemo(()=>{
+    let t=[...tasks];
+    if(filterDate!=="all") t=t.filter(x=>x.date===filterDate);
+    if(filterPerson!=="all") t=t.filter(x=>x.assignee===filterPerson);
+    return t.sort((a,b)=>{
+      const da=a.date||""; const db=b.date||"";
+      if(da!==db)return da<db?-1:1;
+      return (a.startTime||"").localeCompare(b.startTime||"");
+    });
+  },[tasks,filterDate,filterPerson]);
+
+  // Group by date for planning
+  const byDate=useMemo(()=>{
+    const m={};
+    filtered.forEach(t=>{
+      const d=t.date||"Sans date";
+      if(!m[d])m[d]=[];
+      m[d].push(t);
+    });
+    return m;
+  },[filtered]);
+
+  const formatDate=(d)=>{
+    if(!d||d==="Sans date")return "Sans date";
+    const days=["dim","lun","mar","mer","jeu","ven","sam"];
+    const months=["janv","févr","mars","avr","mai","juin","juil","août","sept","oct","nov","déc"];
+    const dt=new Date(d);
+    return `${days[dt.getDay()]} ${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()}`;
+  };
+
+  const statusSymbol={todo:"○",inprogress:"◑",done:"●"};
+  const statusColor={todo:"#c5a898",inprogress:"#c47c2a",done:"#3a9d5d"};
 
   return (
     <div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1rem",marginBottom:"1.5rem"}}>
-        {[["À faire",counts.todo,"#f0e6e0","#8b6355"],["En cours",counts.inprogress,"#fef3e2","#c47c2a"],["Terminées",counts.done,"#e8f5e9","#3a7d44"]].map(([l,c,bg,col])=>(
-          <div key={l} style={{background:bg,borderRadius:"1rem",padding:"1rem",textAlign:"center"}}>
-            <div style={{fontSize:"1.8rem",fontWeight:"700",color:col,fontFamily:"'Playfair Display',serif"}}>{c}</div>
-            <div style={{fontSize:"0.75rem",color:col,fontWeight:"700"}}>{l}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{display:"flex",gap:"0.5rem",marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
-        {["all","todo","inprogress","done"].map(s=>(
-          <button key={s} onClick={()=>setFilter(s)} style={{...btnS,padding:"0.35rem 0.8rem",fontSize:"0.78rem",background:filter===s?"#c4755a":"transparent",color:filter===s?"white":"#8b6355",border:filter===s?"none":"1.5px solid #d9c9bf"}}>
-            {{all:"Tous",todo:"À faire",inprogress:"En cours",done:"Fait"}[s]}
-          </button>
-        ))}
-        <select value={filterPerson} onChange={e=>setFilterPerson(e.target.value)} style={{...iStyle,width:"auto",padding:"0.35rem 0.7rem",fontSize:"0.78rem",marginLeft:"4px"}}>
+      {/* Toolbar */}
+      <div style={{display:"flex",gap:"0.5rem",marginBottom:"1.2rem",flexWrap:"wrap",alignItems:"center"}}>
+        <select value={filterDate} onChange={e=>setFilterDate(e.target.value)} style={{...iStyle,width:"auto",padding:"0.38rem 0.75rem",fontSize:"0.8rem"}}>
+          <option value="all">Toutes les dates</option>
+          {dates.map(d=><option key={d} value={d}>{formatDate(d)}</option>)}
+        </select>
+        <select value={filterPerson} onChange={e=>setFilterPerson(e.target.value)} style={{...iStyle,width:"auto",padding:"0.38rem 0.75rem",fontSize:"0.8rem"}}>
           <option value="all">Toutes les personnes</option>
           {people.map(p=><option key={p} value={p}>{p}</option>)}
         </select>
-        {isAdmin&&<button onClick={openNew} style={{...btnP,fontSize:"0.82rem",padding:"0.45rem 0.9rem"}}>+ Tâche</button>}
+        {/* Legend */}
+        <div style={{display:"flex",gap:"0.6rem",marginLeft:"auto",alignItems:"center",flexWrap:"wrap"}}>
+          {Object.entries(CAT_COLORS).slice(0,5).map(([cat,c])=>(
+            <span key={cat} style={{display:"flex",alignItems:"center",gap:"0.25rem",fontSize:"0.72rem",color:"#6b4c3b"}}>
+              <span style={{width:"8px",height:"8px",borderRadius:"50%",background:c.dot,display:"inline-block"}}/>
+              {cat}
+            </span>
+          ))}
+        </div>
+        {canEdit&&<button onClick={openNew} style={{...btnP,fontSize:"0.82rem",padding:"0.45rem 0.9rem"}}>+ Tâche</button>}
       </div>
-      <div style={{display:"flex",flexDirection:"column",gap:"0.65rem"}}>
-        {filtered.length===0&&<div style={{textAlign:"center",color:"#b89a8e",padding:"2rem",fontStyle:"italic"}}>Aucune tâche</div>}
-        {filtered.map(task=>(
-          <div key={task.id} style={{background:"white",borderRadius:"1rem",padding:"1rem 1.2rem",border:"1.5px solid #f0e4dc",display:"flex",alignItems:"flex-start",gap:"0.8rem"}}>
-            <button onClick={()=>cycle(task)} style={{background:"none",border:"none",cursor:"pointer",flexShrink:0,marginTop:"2px"}}><Badge status={task.status}/></button>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontFamily:"'Playfair Display',serif",fontSize:"0.95rem",color:"#2c1810",textDecoration:task.status==="done"?"line-through":"none",opacity:task.status==="done"?0.55:1}}>{task.title}</div>
-              <div style={{display:"flex",gap:"0.8rem",flexWrap:"wrap",fontSize:"0.77rem",color:"#8b6355",marginTop:"0.3rem"}}>
-                {task.assignee&&<span>👤 {task.assignee}</span>}
-                {task.datetime&&<span>📅 {task.datetime.replace("T"," ").slice(0,16)}</span>}
-                {task.location&&<span>📍 {task.location}</span>}
-                {task.category&&<span>🏷 {task.category}</span>}
-              </div>
-              {task.note&&<div style={{marginTop:"0.35rem",fontSize:"0.78rem",color:"#a07060",fontStyle:"italic"}}>💬 {task.note}</div>}
+
+      {/* Planning grid */}
+      {Object.keys(byDate).length===0&&<div style={{textAlign:"center",color:"#b89a8e",padding:"3rem",fontStyle:"italic"}}>Aucune tâche</div>}
+
+      {Object.entries(byDate).map(([date,dayTasks])=>(
+        <div key={date} style={{marginBottom:"2rem",animation:"slideIn 0.25s ease"}}>
+          {/* Day header */}
+          <div style={{display:"flex",alignItems:"center",gap:"0.8rem",marginBottom:"1rem"}}>
+            <div style={{background:"linear-gradient(135deg,#3d1f15,#6b2d1a)",borderRadius:"0.8rem",padding:"0.4rem 1rem",display:"inline-block"}}>
+              <span style={{fontFamily:"'Playfair Display',serif",color:"#fdf8f4",fontSize:"0.9rem",fontWeight:"600"}}>{formatDate(date)}</span>
             </div>
-            {isAdmin&&(
-              <div style={{display:"flex",gap:"0.3rem",flexShrink:0}}>
-                <button onClick={()=>openEdit(task)} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.9rem"}}>✏️</button>
-                <button onClick={()=>del(task.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.9rem"}}>🗑</button>
-              </div>
-            )}
+            <div style={{flex:1,height:"1px",background:"linear-gradient(to right,#e8d5c8,transparent)"}}/>
+            <span style={{fontSize:"0.75rem",color:"#b89a8e"}}>{dayTasks.length} tâche{dayTasks.length>1?"s":""}</span>
           </div>
-        ))}
-      </div>
+
+          {/* Timeline */}
+          <div style={{position:"relative",paddingLeft:"80px"}}>
+            {/* Vertical line */}
+            <div style={{position:"absolute",left:"64px",top:0,bottom:0,width:"2px",background:"linear-gradient(to bottom,#e8d5c8,#f5ece6)"}}/>
+
+            {dayTasks.map((task,i)=>{
+              const cc=catColor(task.category);
+              const isExpanded=expandedId===task.id;
+              return (
+                <div key={task.id} style={{position:"relative",marginBottom:"0.75rem",animation:`fadeIn 0.2s ease ${i*0.04}s both`}}>
+                  {/* Time column */}
+                  <div style={{position:"absolute",left:"-80px",width:"70px",textAlign:"right",paddingTop:"0.6rem"}}>
+                    {task.startTime&&<div style={{fontSize:"0.8rem",fontWeight:"600",color:"#5a3a2a"}}>{task.startTime}</div>}
+                    {task.endTime&&task.endTime!==task.startTime&&<div style={{fontSize:"0.68rem",color:"#b89a8e"}}>{task.endTime}</div>}
+                  </div>
+
+                  {/* Dot on timeline */}
+                  <div style={{position:"absolute",left:"-18px",top:"0.85rem",width:"12px",height:"12px",borderRadius:"50%",background:cc.dot,border:"2px solid white",boxShadow:"0 0 0 2px "+cc.dot+"44"}}/>
+
+                  {/* Card */}
+                  <div onClick={()=>setExpandedId(isExpanded?null:task.id)}
+                    style={{background:"white",borderRadius:"0.9rem",padding:"0.75rem 1rem",border:`1.5px solid ${cc.border}44`,borderLeft:`3px solid ${cc.border}`,cursor:"pointer",transition:"box-shadow 0.15s",boxShadow:isExpanded?"0 4px 16px rgba(0,0,0,0.08)":"none"}}>
+
+                    <div style={{display:"flex",alignItems:"flex-start",gap:"0.6rem"}}>
+                      {/* Status toggle */}
+                      <button onClick={e=>cycleStatus(task,e)} title="Changer le statut"
+                        style={{background:"none",border:"none",cursor:"pointer",fontSize:"1.1rem",color:statusColor[task.status],flexShrink:0,lineHeight:1,paddingTop:"1px"}}>
+                        {statusSymbol[task.status]}
+                      </button>
+
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:"0.5rem"}}>
+                          <span style={{fontFamily:"'Playfair Display',serif",fontSize:"0.95rem",color:"#2c1810",fontWeight:"600",textDecoration:task.status==="done"?"line-through":"none",opacity:task.status==="done"?0.5:1}}>
+                            {task.title}
+                          </span>
+                          <div style={{display:"flex",gap:"0.3rem",flexShrink:0,alignItems:"center"}}>
+                            <span style={{background:cc.bg,color:cc.dot,borderRadius:"1rem",padding:"0.12rem 0.5rem",fontSize:"0.68rem",fontWeight:"600"}}>{task.category}</span>
+                          </div>
+                        </div>
+
+                        <div style={{display:"flex",gap:"0.7rem",flexWrap:"wrap",fontSize:"0.75rem",color:"#8b6355",marginTop:"0.25rem"}}>
+                          {task.assignee&&<span>👤 {task.assignee}</span>}
+                          {task.location&&<span>📍 {task.location}</span>}
+                        </div>
+                      </div>
+
+                      {canEdit&&(
+                        <div style={{display:"flex",gap:"0.2rem",flexShrink:0}}>
+                          <button onClick={e=>openEdit(task,e)} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.85rem",padding:"2px"}}>✏️</button>
+                          <button onClick={e=>del(task.id,e)} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.85rem",padding:"2px"}}>🗑</button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Expanded note */}
+                    {isExpanded&&task.note&&(
+                      <div style={{marginTop:"0.5rem",paddingTop:"0.5rem",borderTop:"1px dashed #f0e4dc",fontSize:"0.78rem",color:"#a07060",fontStyle:"italic"}}>
+                        💬 {task.note}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {/* Stats footer */}
+      {tasks.length>0&&(
+        <div style={{display:"flex",gap:"1rem",marginTop:"1rem",padding:"0.8rem 1rem",background:"white",borderRadius:"0.9rem",border:"1.5px solid #f0e4dc",flexWrap:"wrap"}}>
+          {[["○","À faire","todo","#8b6355"],["◑","En cours","inprogress","#c47c2a"],["●","Terminées","done","#3a9d5d"]].map(([sym,l,s,c])=>(
+            <div key={s} style={{display:"flex",alignItems:"center",gap:"0.35rem",fontSize:"0.78rem"}}>
+              <span style={{color:c,fontSize:"0.9rem"}}>{sym}</span>
+              <span style={{color:c,fontWeight:"600"}}>{tasks.filter(t=>t.status===s).length}</span>
+              <span style={{color:"#b89a8e"}}>{l}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Edit modal */}
       {showModal&&(
         <Modal title={editT?"Modifier la tâche":"Nouvelle tâche"} onClose={()=>setShowModal(false)}>
           <div style={{display:"flex",flexDirection:"column",gap:"0.9rem"}}>
-            <div><label style={lStyle}>Titre *</label><input style={iStyle} value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Description de la tâche…"/></div>
+            <div><label style={lStyle}>Titre *</label><input style={iStyle} value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Intitulé de la tâche…"/></div>
             <div>
               <label style={lStyle}>Assignée à</label>
               <input style={iStyle} value={form.assignee} onChange={e=>setForm({...form,assignee:e.target.value})} list="plist" placeholder="Nom…"/>
@@ -274,9 +370,13 @@ function TasksTab({tasks,setTasks,guests,isAdmin}) {
                 </select>
               </div>
             </div>
-            <div><label style={lStyle}>Date & heure</label><input type="datetime-local" style={iStyle} value={form.datetime} onChange={e=>setForm({...form,datetime:e.target.value})}/></div>
+            <div><label style={lStyle}>Date</label><input type="date" style={iStyle} value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.8rem"}}>
+              <div><label style={lStyle}>Heure de début</label><input type="time" style={iStyle} value={form.startTime} onChange={e=>setForm({...form,startTime:e.target.value})}/></div>
+              <div><label style={lStyle}>Heure de fin</label><input type="time" style={iStyle} value={form.endTime} onChange={e=>setForm({...form,endTime:e.target.value})}/></div>
+            </div>
             <div><label style={lStyle}>Lieu</label><input style={iStyle} value={form.location} onChange={e=>setForm({...form,location:e.target.value})} placeholder="Ex: Salle de réception…"/></div>
-            <div><label style={lStyle}>Note</label><textarea style={{...iStyle,height:"70px",resize:"vertical"}} value={form.note} onChange={e=>setForm({...form,note:e.target.value})}/></div>
+            <div><label style={lStyle}>Note</label><textarea style={{...iStyle,height:"68px",resize:"vertical"}} value={form.note} onChange={e=>setForm({...form,note:e.target.value})}/></div>
             <div style={{display:"flex",gap:"0.7rem",justifyContent:"flex-end"}}>
               <button style={btnS} onClick={()=>setShowModal(false)}>Annuler</button>
               <button style={btnP} onClick={saveFn}>Enregistrer</button>
@@ -288,8 +388,10 @@ function TasksTab({tasks,setTasks,guests,isAdmin}) {
   );
 }
 
-/* ═══════════════════════════════ PROVIDERS ═══════════════════════════════ */
-function ProvidersTab({providers,setProviders,isAdmin}) {
+/* ══════════════════════════════════════════════════════════
+   PROVIDERS — admin only
+══════════════════════════════════════════════════════════ */
+function ProvidersTab({providers,setProviders}){
   const [showModal,setShowModal]=useState(false);
   const [editP,setEditP]=useState(null);
   const blank={name:"",category:"Traiteur / Restauration",contact:"",email:"",note:"",status:"pending"};
@@ -297,8 +399,8 @@ function ProvidersTab({providers,setProviders,isAdmin}) {
   const cats=["Traiteur / Restauration","Photographe / Vidéaste","Fleuriste / Décoration","Lieu / Salle de réception","Illustratrice","Autre"];
   const catIcon={"Traiteur / Restauration":"🍽","Photographe / Vidéaste":"📷","Fleuriste / Décoration":"🌸","Lieu / Salle de réception":"🏰","Illustratrice":"🎨","Autre":"✨"};
 
-  const openNew=()=>{if(!isAdmin)return;setEditP(null);setForm(blank);setShowModal(true);};
-  const openEdit=(p)=>{if(!isAdmin)return;setEditP(p);setForm({...p});setShowModal(true);};
+  const openNew=()=>{setEditP(null);setForm(blank);setShowModal(true);};
+  const openEdit=(p)=>{setEditP(p);setForm({...p});setShowModal(true);};
   const saveFn=()=>{
     if(!form.name.trim())return;
     const updated=editP?providers.map(p=>p.id===editP.id?{...form,id:editP.id}:p):[...providers,{...form,id:Date.now()}];
@@ -310,7 +412,7 @@ function ProvidersTab({providers,setProviders,isAdmin}) {
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
         <div style={{fontSize:"0.83rem",color:"#8b6355"}}>{providers.length} prestataires · {providers.filter(p=>p.status==="confirmed").length} confirmés</div>
-        {isAdmin&&<button onClick={openNew} style={{...btnP,fontSize:"0.82rem",padding:"0.45rem 0.9rem"}}>+ Ajouter</button>}
+        <button onClick={openNew} style={{...btnP,fontSize:"0.82rem",padding:"0.45rem 0.9rem"}}>+ Ajouter</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:"1rem"}}>
         {providers.map(p=>(
@@ -326,12 +428,10 @@ function ProvidersTab({providers,setProviders,isAdmin}) {
             {p.contact&&<div style={{fontSize:"0.8rem",color:"#6b4c3b",marginBottom:"0.25rem"}}>📞 {p.contact}</div>}
             {p.email&&<div style={{fontSize:"0.8rem",color:"#6b4c3b",marginBottom:"0.25rem"}}>✉️ {p.email}</div>}
             {p.note&&<div style={{fontSize:"0.78rem",color:"#a07060",fontStyle:"italic",marginTop:"0.5rem",paddingTop:"0.5rem",borderTop:"1px solid #f5ece6"}}>💬 {p.note}</div>}
-            {isAdmin&&(
-              <div style={{display:"flex",gap:"0.5rem",marginTop:"0.8rem",justifyContent:"flex-end"}}>
-                <button onClick={()=>openEdit(p)} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e"}}>✏️</button>
-                <button onClick={()=>del(p.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a"}}>🗑</button>
-              </div>
-            )}
+            <div style={{display:"flex",gap:"0.5rem",marginTop:"0.8rem",justifyContent:"flex-end"}}>
+              <button onClick={()=>openEdit(p)} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e"}}>✏️</button>
+              <button onClick={()=>del(p.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a"}}>🗑</button>
+            </div>
           </div>
         ))}
       </div>
@@ -361,18 +461,19 @@ function ProvidersTab({providers,setProviders,isAdmin}) {
   );
 }
 
-/* ═══════════════════════════════ ROOMS ═══════════════════════════════ */
-function BedCard({bed, night, isAdmin, onRemove}) {
-  const gs = bedGuests(bed, night);
-  const bg = BED_COLORS[bed.bedType] || "#f5f5f5";
-  const icon = BED_ICONS[bed.bedType] || "🛏";
-  const isPerNight = !!bed.night1;
+/* ══════════════════════════════════════════════════════════
+   ROOMS
+══════════════════════════════════════════════════════════ */
+function BedCard({bed,night,canEdit,onRemove}){
+  const gs=bedGuests(bed,night);
+  const bg=BED_COLORS[bed.bedType]||"#f5f5f5";
+  const icon=BED_ICONS[bed.bedType]||"🛏";
   return (
-    <div style={{background:bg, borderRadius:"0.75rem", padding:"0.7rem 0.9rem", border:"1px solid rgba(0,0,0,0.07)"}}>
+    <div style={{background:bg,borderRadius:"0.75rem",padding:"0.7rem 0.9rem",border:"1px solid rgba(0,0,0,0.07)"}}>
       <div style={{display:"flex",alignItems:"center",gap:"0.4rem",marginBottom:"0.35rem"}}>
         <span style={{fontSize:"0.9rem"}}>{icon}</span>
-        <span style={{fontSize:"0.72rem",fontWeight:"700",color:"#5a3a2a",letterSpacing:"0.04em",textTransform:"uppercase"}}>{bed.bedType}</span>
-        {isPerNight&&<span style={{fontSize:"0.65rem",color:"#7a5a4a",background:"rgba(0,0,0,0.07)",borderRadius:"1rem",padding:"0.1rem 0.45rem",marginLeft:"auto"}}>par nuit</span>}
+        <span style={{fontSize:"0.72rem",fontWeight:"700",color:"#5a3a2a",textTransform:"uppercase",letterSpacing:"0.04em"}}>{bed.bedType}</span>
+        {bed.night1&&<span style={{fontSize:"0.65rem",color:"#7a5a4a",background:"rgba(0,0,0,0.07)",borderRadius:"1rem",padding:"0.1rem 0.45rem",marginLeft:"auto"}}>par nuit</span>}
       </div>
       {bed.note&&<div style={{fontSize:"0.7rem",color:"#7a5a4a",fontStyle:"italic",marginBottom:"0.4rem",paddingBottom:"0.35rem",borderBottom:"1px dashed rgba(0,0,0,0.1)"}}>{bed.note}</div>}
       <div style={{display:"flex",flexWrap:"wrap",gap:"0.3rem"}}>
@@ -380,7 +481,7 @@ function BedCard({bed, night, isAdmin, onRemove}) {
         {gs.map(g=>(
           <span key={g} style={{background:"rgba(255,255,255,0.75)",color:"#5a3a2a",borderRadius:"2rem",padding:"0.15rem 0.55rem",fontSize:"0.75rem",display:"flex",alignItems:"center",gap:"0.2rem",border:"1px solid rgba(0,0,0,0.07)"}}>
             {g}
-            {isAdmin&&<button onClick={()=>onRemove(bed.bedId,g)} style={{background:"none",border:"none",cursor:"pointer",color:"#c4755a",padding:0,fontSize:"0.8rem",lineHeight:1}}>×</button>}
+            {canEdit&&<button onClick={()=>onRemove(bed.bedId,g)} style={{background:"none",border:"none",cursor:"pointer",color:"#c4755a",padding:0,fontSize:"0.8rem",lineHeight:1}}>×</button>}
           </span>
         ))}
       </div>
@@ -388,7 +489,7 @@ function BedCard({bed, night, isAdmin, onRemove}) {
   );
 }
 
-function RoomsTab({rooms,setRooms,guests,isAdmin}) {
+function RoomsTab({rooms,setRooms,guests,canEdit}){
   const [night,setNight]=useState(1);
   const [showRoomModal,setShowRoomModal]=useState(false);
   const [showAssignModal,setShowAssignModal]=useState(false);
@@ -402,19 +503,15 @@ function RoomsTab({rooms,setRooms,guests,isAdmin}) {
   const assignedThisNight=rooms.flatMap(r=>r.beds.flatMap(b=>bedGuests(b,night)));
   const available=guests.filter(g=>!assignedThisNight.includes(g.name));
 
-  const openRoomEdit=(r)=>{if(!isAdmin)return;setEditRoom(r);setRoomForm({name:r.name,location:r.location||""});setShowRoomModal(true);};
-  const openNewRoom=()=>{if(!isAdmin)return;setEditRoom(null);setRoomForm({name:"",location:""});setShowRoomModal(true);};
+  const openRoomEdit=(r)=>{if(!canEdit)return;setEditRoom(r);setRoomForm({name:r.name,location:r.location||""});setShowRoomModal(true);};
+  const openNewRoom=()=>{if(!canEdit)return;setEditRoom(null);setRoomForm({name:"",location:""});setShowRoomModal(true);};
   const saveRoom=()=>{
     if(!roomForm.name.trim())return;
-    const updated=editRoom
-      ?rooms.map(r=>r.id===editRoom.id?{...r,...roomForm}:r)
-      :[...rooms,{...roomForm,id:Date.now(),beds:[{bedId:"b"+Date.now(),bedType:"Double",guests:[]}]}];
+    const updated=editRoom?rooms.map(r=>r.id===editRoom.id?{...r,...roomForm}:r):[...rooms,{...roomForm,id:Date.now(),beds:[{bedId:"b"+Date.now(),bedType:"Double",guests:[]}]}];
     setRooms(updated);lsSave(KEYS.rooms,updated);setShowRoomModal(false);
   };
   const delRoom=(id)=>{const u=rooms.filter(r=>r.id!==id);setRooms(u);lsSave(KEYS.rooms,u);};
-
-  const openAssign=(room)=>{if(!isAdmin)return;setSelRoom(room);setSelBedId(room.beds[0]?.bedId||"");setSelGuest("");setCustomGuest("");setShowAssignModal(true);};
-
+  const openAssign=(room)=>{if(!canEdit)return;setSelRoom(room);setSelBedId(room.beds[0]?.bedId||"");setSelGuest("");setCustomGuest("");setShowAssignModal(true);};
   const addGuest=()=>{
     const name=(customGuest.trim()||selGuest).trim();
     if(!name||!selRoom||!selBedId)return;
@@ -434,7 +531,6 @@ function RoomsTab({rooms,setRooms,guests,isAdmin}) {
     setSelRoom(updated.find(r=>r.id===selRoom.id));
     setSelGuest("");setCustomGuest("");
   };
-
   const removeGuest=(roomId,bedId,gName)=>{
     const updated=rooms.map(r=>{
       if(r.id!==roomId)return r;
@@ -456,7 +552,6 @@ function RoomsTab({rooms,setRooms,guests,isAdmin}) {
 
   return (
     <div>
-      {/* Night toggle */}
       <div style={{display:"flex",gap:"0.4rem",marginBottom:"1.5rem",background:"white",padding:"0.4rem",borderRadius:"1rem",border:"1.5px solid #f0e4dc",width:"fit-content"}}>
         {[1,2].map(n=>(
           <button key={n} onClick={()=>setNight(n)} style={{padding:"0.5rem 1.1rem",borderRadius:"0.7rem",border:"none",cursor:"pointer",fontFamily:"'Lora',serif",fontSize:"0.84rem",fontWeight:night===n?"600":"400",background:night===n?"linear-gradient(135deg,#c4755a,#a85840)":"transparent",color:night===n?"white":"#8b6355",transition:"all 0.2s"}}>
@@ -464,8 +559,6 @@ function RoomsTab({rooms,setRooms,guests,isAdmin}) {
           </button>
         ))}
       </div>
-
-      {/* Stats */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1rem",marginBottom:"1.5rem"}}>
         {[[rooms.length,"Chambres","#f0e6e0","#8b6355"],[totalPlaced,"Placés cette nuit","#e8f5e9","#3a7d44"],[guests.length-totalPlaced,"Non placés","#fef3e2","#c47c2a"]].map(([c,l,bg,col])=>(
           <div key={l} style={{background:bg,borderRadius:"1rem",padding:"1rem",textAlign:"center"}}>
@@ -474,11 +567,9 @@ function RoomsTab({rooms,setRooms,guests,isAdmin}) {
           </div>
         ))}
       </div>
-
-      {isAdmin&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:"1rem"}}>
+      {canEdit&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:"1rem"}}>
         <button onClick={openNewRoom} style={{...btnP,fontSize:"0.82rem",padding:"0.45rem 0.9rem"}}>+ Chambre</button>
       </div>}
-
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))",gap:"1rem"}}>
         {rooms.map(room=>{
           const roomGs=room.beds.flatMap(b=>bedGuests(b,night));
@@ -491,15 +582,12 @@ function RoomsTab({rooms,setRooms,guests,isAdmin}) {
                 </div>
                 <span style={{fontSize:"0.77rem",color:"#8b6355",fontWeight:"600",background:"#f5ece6",padding:"0.2rem 0.6rem",borderRadius:"2rem",flexShrink:0}}>{roomGs.length} pers.</span>
               </div>
-
-              {/* Beds list */}
               <div style={{display:"flex",flexDirection:"column",gap:"0.5rem",marginBottom:"0.8rem"}}>
                 {room.beds.map(bed=>(
-                  <BedCard key={bed.bedId} bed={bed} night={night} isAdmin={isAdmin} onRemove={(bedId,g)=>removeGuest(room.id,bedId,g)}/>
+                  <BedCard key={bed.bedId} bed={bed} night={night} canEdit={canEdit} onRemove={(bedId,g)=>removeGuest(room.id,bedId,g)}/>
                 ))}
               </div>
-
-              {isAdmin&&(
+              {canEdit&&(
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:"0.6rem",borderTop:"1px solid #f5ece6"}}>
                   <button onClick={()=>openAssign(room)} style={{...btnS,fontSize:"0.75rem",padding:"0.3rem 0.7rem"}}>+ Assigner</button>
                   <div style={{display:"flex",gap:"0.3rem"}}>
@@ -512,13 +600,11 @@ function RoomsTab({rooms,setRooms,guests,isAdmin}) {
           );
         })}
       </div>
-
-      {/* Room edit modal */}
       {showRoomModal&&(
         <Modal title={editRoom?"Modifier la chambre":"Nouvelle chambre"} onClose={()=>setShowRoomModal(false)}>
           <div style={{display:"flex",flexDirection:"column",gap:"0.9rem"}}>
             <div><label style={lStyle}>Nom *</label><input style={iStyle} value={roomForm.name} onChange={e=>setRoomForm({...roomForm,name:e.target.value})}/></div>
-            <div><label style={lStyle}>Localisation</label><input style={iStyle} value={roomForm.location} onChange={e=>setRoomForm({...roomForm,location:e.target.value})} placeholder="Ex: Gite…"/></div>
+            <div><label style={lStyle}>Localisation</label><input style={iStyle} value={roomForm.location} onChange={e=>setRoomForm({...roomForm,location:e.target.value})}/></div>
             <div style={{display:"flex",gap:"0.7rem",justifyContent:"flex-end"}}>
               <button style={btnS} onClick={()=>setShowRoomModal(false)}>Annuler</button>
               <button style={btnP} onClick={saveRoom}>Enregistrer</button>
@@ -526,39 +612,24 @@ function RoomsTab({rooms,setRooms,guests,isAdmin}) {
           </div>
         </Modal>
       )}
-
-      {/* Assign modal */}
       {showAssignModal&&selRoom&&(
         <Modal title={"Assigner — "+selRoom.name} onClose={()=>setShowAssignModal(false)}>
           <div style={{display:"flex",flexDirection:"column",gap:"0.9rem"}}>
-            <div style={{background:"#f9f2ee",padding:"0.55rem 0.8rem",borderRadius:"0.6rem",fontSize:"0.8rem",color:"#8b6355",fontWeight:"600"}}>
-              {nightLabel[night-1]}
-            </div>
-            <div>
-              <label style={lStyle}>Lit cible</label>
+            <div style={{background:"#f9f2ee",padding:"0.55rem 0.8rem",borderRadius:"0.6rem",fontSize:"0.8rem",color:"#8b6355",fontWeight:"600"}}>{nightLabel[night-1]}</div>
+            <div><label style={lStyle}>Lit cible</label>
               <select style={iStyle} value={selBedId} onChange={e=>setSelBedId(e.target.value)}>
-                {selRoom.beds.map(b=>(
-                  <option key={b.bedId} value={b.bedId}>
-                    {BED_ICONS[b.bedType]||"🛏"} {b.bedType} — {bedGuests(b,night).length} pers.
-                    {b.night1?" (par nuit)":""}
-                  </option>
-                ))}
+                {selRoom.beds.map(b=><option key={b.bedId} value={b.bedId}>{BED_ICONS[b.bedType]||"🛏"} {b.bedType} — {bedGuests(b,night).length} pers.</option>)}
               </select>
             </div>
-            {available.length>0&&(
-              <div>
-                <label style={lStyle}>Invité de la liste</label>
-                <select style={iStyle} value={selGuest} onChange={e=>setSelGuest(e.target.value)}>
-                  <option value="">Choisir…</option>
-                  {available.map(g=><option key={g.id} value={g.name}>{g.name} ({g.group})</option>)}
-                </select>
-              </div>
-            )}
+            {available.length>0&&<div><label style={lStyle}>Invité de la liste</label>
+              <select style={iStyle} value={selGuest} onChange={e=>setSelGuest(e.target.value)}>
+                <option value="">Choisir…</option>
+                {available.map(g=><option key={g.id} value={g.name}>{g.name} ({g.group})</option>)}
+              </select>
+            </div>}
             <div><label style={lStyle}>Ou saisir un nom</label><input style={iStyle} value={customGuest} onChange={e=>setCustomGuest(e.target.value)} placeholder="Prénom Nom"/></div>
             <button style={btnP} onClick={addGuest}>Ajouter</button>
-
-            <div>
-              <label style={lStyle}>État actuel de la chambre</label>
+            <div><label style={lStyle}>État actuel</label>
               {selRoom.beds.map(b=>{
                 const gs=bedGuests(b,night);
                 return (
@@ -568,8 +639,7 @@ function RoomsTab({rooms,setRooms,guests,isAdmin}) {
                       {gs.length===0&&<span style={{color:"#b89a8e",fontSize:"0.73rem",fontStyle:"italic"}}>Vide</span>}
                       {gs.map(g=>(
                         <span key={g} style={{background:"rgba(255,255,255,0.75)",color:"#5a3a2a",borderRadius:"2rem",padding:"0.15rem 0.5rem",fontSize:"0.73rem",display:"flex",alignItems:"center",gap:"0.2rem"}}>
-                          {g}
-                          <button onClick={()=>removeGuest(selRoom.id,b.bedId,g)} style={{background:"none",border:"none",cursor:"pointer",color:"#c4755a",padding:0,fontSize:"0.8rem"}}>×</button>
+                          {g}<button onClick={()=>removeGuest(selRoom.id,b.bedId,g)} style={{background:"none",border:"none",cursor:"pointer",color:"#c4755a",padding:0,fontSize:"0.8rem"}}>×</button>
                         </span>
                       ))}
                     </div>
@@ -584,42 +654,80 @@ function RoomsTab({rooms,setRooms,guests,isAdmin}) {
   );
 }
 
-/* ═══════════════════════════════ APP ═══════════════════════════════ */
-function App() {
+/* ══════════════════════════════════════════════════════════
+   APP
+══════════════════════════════════════════════════════════ */
+function App(){
+  const [role,setRole]=useState("guest");           // guest | weddingPlanner | admin
+  const [loginTarget,setLoginTarget]=useState(null); // which role we're trying to unlock
   const [tab,setTab]=useState("tasks");
   const [tasks,setTasks]=useState(initTasks);
   const [providers,setProviders]=useState(initProviders);
   const [rooms,setRooms]=useState(initRooms);
   const guests=initGuests;
   const [loaded,setLoaded]=useState(false);
-  const [isAdmin,setIsAdmin]=useState(false);
-  const [showAdminLock,setShowAdminLock]=useState(false);
 
   useEffect(()=>{
-    const t=lsLoad(KEYS.tasks);
-    const p=lsLoad(KEYS.providers);
-    const r=lsLoad(KEYS.rooms);
-    if(t)setTasks(t);
-    if(p)setProviders(p);
-    if(r)setRooms(r);
+    const t=lsLoad(KEYS.tasks);const p=lsLoad(KEYS.providers);const r=lsLoad(KEYS.rooms);
+    if(t)setTasks(t);if(p)setProviders(p);if(r)setRooms(r);
     setLoaded(true);
   },[]);
 
   const daysLeft=Math.ceil((new Date("2026-07-15")-new Date())/86400000);
+
+  const canEditTasks   = role==="weddingPlanner"||role==="admin";
+  const canEditRooms   = role==="weddingPlanner"||role==="admin";
+  const canSeeProviders= role==="admin";
+
+  // Tab list depends on role
+  const tabs=[
+    {id:"tasks",   label:"🗂 Planning"},
+    {id:"rooms",   label:"🏠 Chambres"},
+    ...(canSeeProviders?[{id:"providers",label:"🤝 Prestataires"}]:[]),
+  ];
+
+  // Role badge label
+  const roleBadge={guest:"👁 Lecture seule",weddingPlanner:"💼 Wedding Planner",admin:"🔐 Admin"}[role];
+  const roleBadgeColor={guest:"rgba(255,255,255,0.12)",weddingPlanner:"rgba(196,119,42,0.35)",admin:"rgba(196,117,90,0.35)"}[role];
+
   if(!loaded)return <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",fontFamily:"'Playfair Display',serif",color:"#c4755a",fontSize:"1.2rem"}}>Chargement…</div>;
 
   return (
     <div style={{minHeight:"100vh",background:"#fdf8f4",fontFamily:"'Lora',serif"}}>
-      {showAdminLock&&<AdminLock onUnlock={()=>{setIsAdmin(true);setShowAdminLock(false);}} onCancel={()=>setShowAdminLock(false)}/>}
+      {loginTarget&&(
+        <LoginOverlay
+          targetRole={loginTarget}
+          onSuccess={()=>{setRole(loginTarget);setLoginTarget(null);}}
+          onCancel={()=>setLoginTarget(null)}
+        />
+      )}
 
+      {/* Header */}
       <div style={{background:"linear-gradient(135deg,#3d1f15 0%,#6b2d1a 50%,#8b3a20 100%)",padding:"1.8rem 1.5rem 1.4rem",textAlign:"center",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",inset:0,opacity:0.04,backgroundImage:"radial-gradient(circle at 25% 50%,white 1px,transparent 1px),radial-gradient(circle at 75% 20%,white 1px,transparent 1px)",backgroundSize:"40px 40px"}}/>
-        <div style={{position:"absolute",top:"1rem",right:"1rem"}}>
-          {isAdmin
-            ?<button onClick={()=>setIsAdmin(false)} style={{background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:"2rem",color:"#fdf8f4",fontSize:"0.73rem",padding:"0.3rem 0.7rem",cursor:"pointer",fontFamily:"'Lora',serif"}}>🔓 Admin</button>
-            :<button onClick={()=>setShowAdminLock(true)} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"2rem",color:"rgba(253,248,244,0.6)",fontSize:"0.73rem",padding:"0.3rem 0.7rem",cursor:"pointer",fontFamily:"'Lora',serif"}}>🔐</button>
-          }
+
+        {/* Role switcher top-right */}
+        <div style={{position:"absolute",top:"0.8rem",right:"0.8rem",display:"flex",flexDirection:"column",gap:"0.3rem",alignItems:"flex-end"}}>
+          <div style={{display:"flex",gap:"0.3rem",flexWrap:"wrap",justifyContent:"flex-end"}}>
+            {role==="guest"&&(
+              <>
+                <button onClick={()=>setLoginTarget("weddingPlanner")} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"2rem",color:"rgba(253,248,244,0.55)",fontSize:"0.68rem",padding:"0.25rem 0.6rem",cursor:"pointer",fontFamily:"'Lora',serif"}}>💼 Wedding Planner</button>
+                <button onClick={()=>setLoginTarget("admin")} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"2rem",color:"rgba(253,248,244,0.55)",fontSize:"0.68rem",padding:"0.25rem 0.6rem",cursor:"pointer",fontFamily:"'Lora',serif"}}>🔐 Admin</button>
+              </>
+            )}
+            {role==="weddingPlanner"&&(
+              <>
+                <button onClick={()=>setLoginTarget("admin")} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"2rem",color:"rgba(253,248,244,0.55)",fontSize:"0.68rem",padding:"0.25rem 0.6rem",cursor:"pointer",fontFamily:"'Lora',serif"}}>🔐 Admin</button>
+                <button onClick={()=>setRole("guest")} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"2rem",color:"rgba(253,248,244,0.55)",fontSize:"0.68rem",padding:"0.25rem 0.6rem",cursor:"pointer",fontFamily:"'Lora',serif"}}>↩ Déconnexion</button>
+              </>
+            )}
+            {role==="admin"&&(
+              <button onClick={()=>setRole("guest")} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"2rem",color:"rgba(253,248,244,0.55)",fontSize:"0.68rem",padding:"0.25rem 0.6rem",cursor:"pointer",fontFamily:"'Lora',serif"}}>↩ Déconnexion</button>
+            )}
+          </div>
+          <span style={{background:roleBadgeColor,borderRadius:"2rem",color:"#fdf8f4",fontSize:"0.68rem",padding:"0.2rem 0.6rem",fontWeight:"600"}}>{roleBadge}</span>
         </div>
+
         <div style={{fontSize:"1.6rem",marginBottom:"0.3rem"}}>💍</div>
         <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.65rem",color:"#fdf8f4",fontWeight:"400",letterSpacing:"0.03em",margin:"0 0 0.25rem"}}>Notre Mariage</h1>
         <p style={{color:"#e8c4a8",fontSize:"0.82rem",margin:"0 0 0.8rem",fontStyle:"italic"}}>15 juillet 2026</p>
@@ -629,19 +737,20 @@ function App() {
         </div>
       </div>
 
-      <div style={{display:"flex",borderBottom:"2px solid #f0e4dc",background:"white",padding:"0 0.5rem"}}>
-        {[["tasks","🗂 Tâches"],["providers","🤝 Prestataires"],["rooms","🏠 Chambres"]].map(([id,label])=>(
+      {/* Tabs */}
+      <div style={{display:"flex",borderBottom:"2px solid #f0e4dc",background:"white",padding:"0 0.5rem",overflowX:"auto"}}>
+        {tabs.map(({id,label})=>(
           <button key={id} onClick={()=>setTab(id)} style={{padding:"0.9rem 1rem",background:"none",border:"none",cursor:"pointer",borderBottom:tab===id?"2.5px solid #c4755a":"2.5px solid transparent",marginBottom:"-2px",fontFamily:"'Lora',serif",fontSize:"0.85rem",color:tab===id?"#c4755a":"#8b6355",fontWeight:tab===id?"600":"400",transition:"all 0.2s",whiteSpace:"nowrap"}}>
             {label}
           </button>
         ))}
-        {isAdmin&&<div style={{marginLeft:"auto",display:"flex",alignItems:"center",padding:"0 0.8rem",fontSize:"0.75rem",color:"#c4755a",fontWeight:"600"}}>✦ Mode admin actif</div>}
       </div>
 
+      {/* Content */}
       <div style={{padding:"1.4rem",maxWidth:"960px",margin:"0 auto"}}>
-        {tab==="tasks"&&<TasksTab tasks={tasks} setTasks={setTasks} guests={guests} isAdmin={isAdmin}/>}
-        {tab==="providers"&&<ProvidersTab providers={providers} setProviders={setProviders} isAdmin={isAdmin}/>}
-        {tab==="rooms"&&<RoomsTab rooms={rooms} setRooms={setRooms} guests={guests} isAdmin={isAdmin}/>}
+        {tab==="tasks"&&<TasksTab tasks={tasks} setTasks={setTasks} guests={guests} canEdit={canEditTasks}/>}
+        {tab==="rooms"&&<RoomsTab rooms={rooms} setRooms={setRooms} guests={guests} canEdit={canEditRooms}/>}
+        {tab==="providers"&&canSeeProviders&&<ProvidersTab providers={providers} setProviders={setProviders}/>}
       </div>
     </div>
   );
