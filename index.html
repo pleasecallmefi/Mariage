@@ -8,6 +8,29 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyD54nqeOdSHknYuOW-IZ0xR3VxdQjFXd6E",
+      authDomain: "mariage-150726.firebaseapp.com",
+      databaseURL: "https://mariage-150726-default-rtdb.firebaseio.com",
+      projectId: "mariage-150726",
+      storageBucket: "mariage-150726.firebasestorage.app",
+      messagingSenderId: "307018647731",
+      appId: "1:307018647731:web:0e16f64896fb752b4d48c6"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // One setter per collection
+    window._fb = {
+      set: (path, data) => set(ref(db, path), data),
+      listen: (path, cb) => onValue(ref(db, path), snap => cb(snap.val())),
+    };
+    window._fbReady = true;
+    window.dispatchEvent(new Event('fbReady'));
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #fdf8f4; font-family: 'Lora', serif; }
@@ -36,9 +59,13 @@ const ROLES = {
 };
 const PASSWORDS = { weddingPlanner:"150726", admin:"280623" };
 
-const KEYS = { tasks:"w-tasks4", providers:"w-providers5", rooms:"w-rooms4" };
-function lsLoad(key) { try { const v=localStorage.getItem(key); return v?JSON.parse(v):null; } catch { return null; } }
-function lsSave(key,data) { try { localStorage.setItem(key,JSON.stringify(data)); } catch(e) {} }
+const KEYS = { tasks:"tasks", providers:"providers", rooms:"rooms", guests:"guests" };
+// lsSave now writes to Firebase (path = key)
+function lsSave(key, data) {
+  if (window._fb) window._fb.set("org/" + key, data);
+}
+// lsLoad kept as no-op — data comes via Firebase listeners
+function lsLoad(key) { return null; }
 
 /* ─── Category colours for planning ────────────────────── */
 const CAT_COLORS = {
@@ -689,11 +716,11 @@ function GuestsTab({guests,setGuests}){
     } else {
       updated=[...guests,{...form,id:Date.now()}];
     }
-    setGuests(updated);lsSave("w-guests4",updated);setShowModal(false);
+    setGuests(updated);lsSave(KEYS.guests,updated);setShowModal(false);
   };
   const del=(id)=>{
     const u=guests.filter(g=>g.id!==id);
-    setGuests(u);lsSave("w-guests4",u);
+    setGuests(u);lsSave(KEYS.guests,u);
   };
 
   const filtered=guests
@@ -797,14 +824,20 @@ function App(){
   const [tasks,setTasks]=useState(initTasks);
   const [providers,setProviders]=useState(initProviders);
   const [rooms,setRooms]=useState(initRooms);
-  const [guests,setGuests]=useState(()=>lsLoad("w-guests4")||initGuests);
-  const [tables,setTables]=useState(()=>lsLoad("w-tables4")||[]);
+  const [guests,setGuests]=useState(()=>initGuests);
+  const [tables,setTables]=useState(()=>[]);
   const [loaded,setLoaded]=useState(false);
 
   useEffect(()=>{
-    const t=lsLoad(KEYS.tasks);const p=lsLoad(KEYS.providers);const r=lsLoad(KEYS.rooms);
-    if(t)setTasks(t);if(p)setProviders(p);if(r)setRooms(r);
-    setLoaded(true);
+    function attachListeners() {
+      window._fb.listen("org/tasks",    v => { if(v) setTasks(Array.isArray(v)?v:Object.values(v)); });
+      window._fb.listen("org/providers",v => { if(v) setProviders(Array.isArray(v)?v:Object.values(v)); });
+      window._fb.listen("org/rooms",    v => { if(v) setRooms(Array.isArray(v)?v:Object.values(v)); });
+      window._fb.listen("org/guests",   v => { if(v) setGuests(Array.isArray(v)?v:Object.values(v)); });
+      setLoaded(true);
+    }
+    if(window._fbReady){ attachListeners(); }
+    else { window.addEventListener('fbReady', attachListeners, {once:true}); }
   },[]);
 
   const daysLeft=Math.ceil((new Date("2026-07-15")-new Date())/86400000);
@@ -820,7 +853,7 @@ function App(){
     {id:"rooms",   label:"🏠 Chambres"},
     ...(canSeeProviders?[{id:"providers",label:"🤝 Prestataires"}]:[]),
     ...(canEditTasks?[{id:"guests",label:"👥 Personnes"}]:[]),
-    ...(canEditTasks?[{id:"seating",label:"🪑 Plan de table"}]:[]),
+    ...(canEditTasks?[{id:"seating",label:"📷 Ordre des photos"}]:[]),
   ];
 
   // Role badge label
@@ -878,7 +911,7 @@ function App(){
       <div style={{display:"flex",borderBottom:"2px solid #f0e4dc",background:"white",padding:"0 0.5rem",overflowX:"auto"}}>
         {tabs.map(({id,label})=>{
           if(id==="seating") return (
-            <a key={id} href="https://pleasecallmefi.github.io/plandetable/" target="_blank" rel="noopener noreferrer"
+            <a key={id} href="https://pleasecallmefi.github.io/ordrephoto/" target="_blank" rel="noopener noreferrer"
               style={{padding:"0.9rem 1rem",background:"none",border:"none",cursor:"pointer",borderBottom:"2.5px solid transparent",marginBottom:"-2px",fontFamily:"'Lora',serif",fontSize:"0.85rem",color:"#8b6355",fontWeight:"400",transition:"all 0.2s",whiteSpace:"nowrap",textDecoration:"none",display:"flex",alignItems:"center",gap:"0.3rem"}}>
               {label} <span style={{fontSize:"0.65rem",opacity:0.6}}>↗</span>
             </a>
