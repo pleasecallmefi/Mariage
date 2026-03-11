@@ -11,7 +11,9 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #fdf8f4; font-family: 'Lora', serif; }
-    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #f5ece6; } ::-webkit-scrollbar-thumb { background: #c4755a; border-radius: 3px; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f5ece6; }
+    ::-webkit-scrollbar-thumb { background: #c4755a; border-radius: 3px; }
     @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
     @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
   </style>
@@ -19,17 +21,80 @@
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useCallback } = React;
+const { useState, useEffect } = React;
 
-// ─── Local Storage helpers (persists across sessions in browser) ───
-const KEYS = { tasks:"w-tasks2", providers:"w-providers2", rooms:"w-rooms2" };
+const ADMIN_PWD = "280623";
+const KEYS = { tasks:"w-tasks3", providers:"w-providers3", rooms:"w-rooms3" };
 function lsLoad(key) { try { const v=localStorage.getItem(key); return v?JSON.parse(v):null; } catch { return null; } }
 function lsSave(key,data) { try { localStorage.setItem(key,JSON.stringify(data)); } catch(e) { console.error(e); } }
 
-// ─── Admin password ───
-const ADMIN_PWD = "280623";
+/*
+  Bed structure:
+    Standard bed:  { bedId, bedType, guests:[] }
+    Per-night bed: { bedId, bedType, note, night1:[], night2:[] }
+*/
 
-// ─── Initial data ───
+const initRooms = [
+  {
+    id:1, name:"Chambre bleue", location:"",
+    beds:[ { bedId:"b1-1", bedType:"Double", guests:["Anthony","Charlotte"] } ]
+  },
+  {
+    id:2, name:"Chambre Elle", location:"",
+    beds:[ { bedId:"b2-1", bedType:"Double", guests:["Ryan"] } ]
+  },
+  {
+    id:3, name:"Gite Rive droite", location:"",
+    beds:[
+      { bedId:"b3-1", bedType:"Double",          guests:["Miangaly","Nantenaina"] },
+      { bedId:"b3-2", bedType:"Twin",             guests:["Père Gaston"] },
+      { bedId:"b3-3", bedType:"Lit convertible",  guests:["Andoniaina"] }
+    ]
+  },
+  {
+    id:4, name:"Gite Rive Gauche", location:"",
+    beds:[
+      { bedId:"b4-1", bedType:"Double",           guests:["Michèle","Ando"] },
+      { bedId:"b4-2", bedType:"Twin",              guests:["Toavina","Rasanda"] },
+      { bedId:"b4-3", bedType:"Lit convertible",  guests:["Tsiro"] }
+    ]
+  },
+  {
+    id:5, name:"Suite du Lac", location:"",
+    beds:[ { bedId:"b5-1", bedType:"Double", guests:["Tinah","Toky"] } ]
+  },
+  {
+    id:6, name:"Suite familiale", location:"",
+    beds:[ { bedId:"b6-1", bedType:"Double + Twin", guests:["Hayara"] } ]
+  },
+  {
+    id:7, name:"Suite or", location:"",
+    beds:[
+      { bedId:"b7-1", bedType:"Twin",   guests:["Alex","Anteh"] },
+      { bedId:"b7-2", bedType:"Double", guests:["Salohy","Célin"] }
+    ]
+  },
+  {
+    id:8, name:"Suite vision", location:"",
+    beds:[
+      {
+        bedId:"b8-1",
+        bedType:"Lit convertible → Double",
+        note:"Lit convertible nuit 1, lit double nuit 2 — Ilo rejoint ce lit la 2ème nuit",
+        night1:["Phrad","Haingotiana"],
+        night2:["Phrad","Haingotiana","Ilo"]
+      },
+      {
+        bedId:"b8-2",
+        bedType:"Lit convertible",
+        note:"Ilo part sur l'autre lit la 2ème nuit",
+        night1:["Ilo","Oliva"],
+        night2:["Oliva"]
+      }
+    ]
+  },
+];
+
 const initGuests = [
   {id:1,name:"Anthony",group:"Couple"},{id:2,name:"Charlotte",group:"Couple"},
   {id:3,name:"Ryan",group:"Famille"},{id:4,name:"Miangaly",group:"Famille"},
@@ -43,17 +108,6 @@ const initGuests = [
   {id:19,name:"Célin",group:"Amis"},{id:20,name:"Phrad",group:"Amis"},
   {id:21,name:"Haingotiana",group:"Amis"},{id:22,name:"Ilo",group:"Amis"},
   {id:23,name:"Oliva",group:"Amis"},
-];
-
-const initRooms = [
-  {id:1,name:"Chambre bleue",location:"",capacity:2,type:"Double",guests:["Anthony","Charlotte"]},
-  {id:2,name:"Chambre Elle",location:"",capacity:2,type:"Double",guests:["Ryan"]},
-  {id:3,name:"Gite Rive droite",location:"",capacity:4,type:"Mixte",guests:["Miangaly","Nantenaina","Père Gaston","Andoniaina"]},
-  {id:4,name:"Gite Rive Gauche",location:"",capacity:5,type:"Mixte",guests:["Michèle","Ando","Toavina","Rasanda","Tsiro"]},
-  {id:5,name:"Suite du Lac",location:"",capacity:2,type:"Double",guests:["Tinah","Toky"]},
-  {id:6,name:"Suite familiale",location:"",capacity:3,type:"Double + Twin",guests:["Hayara"]},
-  {id:7,name:"Suite or",location:"",capacity:4,type:"Mixte",guests:["Alex","Anteh","Salohy","Célin"]},
-  {id:8,name:"Suite vision",location:"",capacity:4,type:"Mixte",guests:["Phrad","Haingotiana","Ilo","Oliva"]},
 ];
 
 const initTasks = [
@@ -70,31 +124,40 @@ const initProviders = [
   {id:5,name:"Illustratrice",category:"Illustratrice",contact:"",email:"",note:"",status:"inprogress"},
 ];
 
-// ─── Styles ───
-const iStyle = {width:"100%",padding:"0.6rem 0.8rem",border:"1.5px solid #d9c9bf",borderRadius:"0.6rem",fontFamily:"'Lora',serif",fontSize:"0.88rem",color:"#2c1810",background:"#fffaf7",outline:"none",boxSizing:"border-box"};
-const lStyle = {display:"block",marginBottom:"0.3rem",fontSize:"0.73rem",fontWeight:"700",color:"#8b6355",letterSpacing:"0.06em",textTransform:"uppercase"};
-const btnP = {background:"linear-gradient(135deg,#c4755a,#a85840)",color:"white",border:"none",borderRadius:"0.7rem",padding:"0.65rem 1.3rem",fontFamily:"'Lora',serif",fontSize:"0.88rem",cursor:"pointer",fontWeight:"600"};
-const btnS = {background:"transparent",color:"#8b6355",border:"1.5px solid #d9c9bf",borderRadius:"0.7rem",padding:"0.6rem 1.1rem",fontFamily:"'Lora',serif",fontSize:"0.88rem",cursor:"pointer"};
+const iStyle={width:"100%",padding:"0.6rem 0.8rem",border:"1.5px solid #d9c9bf",borderRadius:"0.6rem",fontFamily:"'Lora',serif",fontSize:"0.88rem",color:"#2c1810",background:"#fffaf7",outline:"none",boxSizing:"border-box"};
+const lStyle={display:"block",marginBottom:"0.3rem",fontSize:"0.73rem",fontWeight:"700",color:"#8b6355",letterSpacing:"0.06em",textTransform:"uppercase"};
+const btnP={background:"linear-gradient(135deg,#c4755a,#a85840)",color:"white",border:"none",borderRadius:"0.7rem",padding:"0.65rem 1.3rem",fontFamily:"'Lora',serif",fontSize:"0.88rem",cursor:"pointer",fontWeight:"600"};
+const btnS={background:"transparent",color:"#8b6355",border:"1.5px solid #d9c9bf",borderRadius:"0.7rem",padding:"0.6rem 1.1rem",fontFamily:"'Lora',serif",fontSize:"0.88rem",cursor:"pointer"};
+
+const BED_COLORS={"Double":"#e8f4fd","Twin":"#fff0f0","Lit convertible":"#fafae8","Double + Twin":"#fce8f5","Lit convertible → Double":"#f0eeff","Suite":"#f3e8ff","Mixte":"#f5f5f5"};
+const BED_ICONS={"Double":"🛏","Twin":"🛏🛏","Lit convertible":"🛋","Double + Twin":"🛏 + 🛋","Lit convertible → Double":"🛋 → 🛏","Suite":"👑","Mixte":"🏠"};
+
+function bedGuests(bed, night) {
+  if (bed.night1) return night === 1 ? (bed.night1||[]) : (bed.night2||[]);
+  return bed.guests || [];
+}
 
 function Badge({status}) {
   const m={todo:{l:"À faire",bg:"#f0e6e0",c:"#8b6355"},inprogress:{l:"En cours",bg:"#fef3e2",c:"#c47c2a"},done:{l:"Fait ✓",bg:"#e8f5e9",c:"#3a7d44"},confirmed:{l:"Confirmé",bg:"#e8f5e9",c:"#3a7d44"},pending:{l:"En attente",bg:"#fef3e2",c:"#c47c2a"}};
   const s=m[status]||m.todo;
-  return React.createElement('span',{style:{background:s.bg,color:s.c,borderRadius:"2rem",padding:"0.18rem 0.65rem",fontSize:"0.73rem",fontWeight:"700"}},s.l);
+  return <span style={{background:s.bg,color:s.c,borderRadius:"2rem",padding:"0.18rem 0.65rem",fontSize:"0.73rem",fontWeight:"700"}}>{s.l}</span>;
 }
 
 function Modal({title,onClose,children}) {
-  return React.createElement('div',{style:{position:"fixed",inset:0,background:"rgba(15,10,8,0.72)",backdropFilter:"blur(5px)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}},
-    React.createElement('div',{style:{background:"#fdf8f4",borderRadius:"1.5rem",padding:"2rem",width:"100%",maxWidth:"500px",maxHeight:"88vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(15,10,8,0.35)",animation:"fadeIn 0.2s ease"}},
-      React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}},
-        React.createElement('h2',{style:{fontFamily:"'Playfair Display',serif",fontSize:"1.35rem",color:"#2c1810",margin:0}},title),
-        React.createElement('button',{onClick:onClose,style:{background:"none",border:"none",cursor:"pointer",fontSize:"1.4rem",color:"#8b6355",lineHeight:1}},"×")
-      ),
-      children
-    )
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(15,10,8,0.72)",backdropFilter:"blur(5px)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
+      <div style={{background:"#fdf8f4",borderRadius:"1.5rem",padding:"2rem",width:"100%",maxWidth:"520px",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 32px 80px rgba(15,10,8,0.35)",animation:"fadeIn 0.2s ease"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.3rem",color:"#2c1810",margin:0}}>{title}</h2>
+          <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:"1.4rem",color:"#8b6355",lineHeight:1}}>×</button>
+        </div>
+        {children}
+      </div>
+    </div>
   );
 }
 
-function AdminLock({onUnlock}) {
+function AdminLock({onUnlock,onCancel}) {
   const [pwd,setPwd]=useState("");
   const [err,setErr]=useState(false);
   const [shake,setShake]=useState(false);
@@ -102,20 +165,23 @@ function AdminLock({onUnlock}) {
     if(pwd===ADMIN_PWD){onUnlock();}
     else{setErr(true);setShake(true);setTimeout(()=>setShake(false),500);setPwd("");}
   };
-  return React.createElement('div',{style:{position:"fixed",inset:0,background:"linear-gradient(160deg,#3d1f15,#6b2d1a,#2c1510)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000}},
-    React.createElement('div',{style:{textAlign:"center",padding:"2.5rem",background:"rgba(253,248,244,0.06)",borderRadius:"2rem",border:"1px solid rgba(255,255,255,0.1)",backdropFilter:"blur(10px)",width:"320px",animation:shake?"shake 0.4s ease":"fadeIn 0.3s ease"}},
-      React.createElement('div',{style:{fontSize:"2.5rem",marginBottom:"1rem"}},"🔐"),
-      React.createElement('h2',{style:{fontFamily:"'Playfair Display',serif",color:"#fdf8f4",fontSize:"1.4rem",fontWeight:"400",margin:"0 0 0.4rem"}},"Espace Admin"),
-      React.createElement('p',{style:{color:"#e8c4a8",fontSize:"0.82rem",margin:"0 0 1.5rem",fontStyle:"italic"}},"Accès réservé aux organisateurs"),
-      React.createElement('input',{type:"password",value:pwd,onChange:e=>{setPwd(e.target.value);setErr(false);},onKeyDown:e=>e.key==="Enter"&&tryLogin(),placeholder:"Mot de passe",style:{...iStyle,background:"rgba(255,255,255,0.1)",border:`1.5px solid ${err?"#e07070":"rgba(255,255,255,0.2)"}`,color:"white",textAlign:"center",letterSpacing:"0.2em",fontSize:"1.1rem",marginBottom:"0.5rem"}}),
-      err&&React.createElement('p',{style:{color:"#e07070",fontSize:"0.8rem",margin:"0 0 0.8rem",fontStyle:"italic"}},"Mot de passe incorrect"),
-      React.createElement('button',{onClick:tryLogin,style:{...btnP,width:"100%",marginTop:"0.5rem",padding:"0.8rem"}},"Accéder"),
-      React.createElement('button',{onClick:()=>document.querySelector('#adminlockcancel')&&document.querySelector('#adminlockcancel').click(),id:"adminlockcancel",style:{...btnS,width:"100%",marginTop:"0.6rem",color:"rgba(253,248,244,0.6)",border:"1px solid rgba(255,255,255,0.15)",padding:"0.5rem"}},"Annuler")
-    )
+  return (
+    <div style={{position:"fixed",inset:0,background:"linear-gradient(160deg,#3d1f15,#6b2d1a,#2c1510)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000}}>
+      <div style={{textAlign:"center",padding:"2.5rem",background:"rgba(253,248,244,0.06)",borderRadius:"2rem",border:"1px solid rgba(255,255,255,0.1)",backdropFilter:"blur(10px)",width:"320px",animation:shake?"shake 0.4s ease":"fadeIn 0.3s ease"}}>
+        <div style={{fontSize:"2.5rem",marginBottom:"1rem"}}>🔐</div>
+        <h2 style={{fontFamily:"'Playfair Display',serif",color:"#fdf8f4",fontSize:"1.4rem",fontWeight:"400",margin:"0 0 0.4rem"}}>Espace Admin</h2>
+        <p style={{color:"#e8c4a8",fontSize:"0.82rem",margin:"0 0 1.5rem",fontStyle:"italic"}}>Accès réservé aux organisateurs</p>
+        <input type="password" value={pwd} onChange={e=>{setPwd(e.target.value);setErr(false);}} onKeyDown={e=>e.key==="Enter"&&tryLogin()} placeholder="Mot de passe"
+          style={{...iStyle,background:"rgba(255,255,255,0.1)",border:`1.5px solid ${err?"#e07070":"rgba(255,255,255,0.2)"}`,color:"white",textAlign:"center",letterSpacing:"0.2em",fontSize:"1.1rem",marginBottom:"0.5rem"}}/>
+        {err&&<p style={{color:"#e07070",fontSize:"0.8rem",margin:"0 0 0.8rem",fontStyle:"italic"}}>Mot de passe incorrect</p>}
+        <button onClick={tryLogin} style={{...btnP,width:"100%",marginTop:"0.5rem",padding:"0.8rem"}}>Accéder</button>
+        <button onClick={onCancel} style={{...btnS,width:"100%",marginTop:"0.6rem",color:"rgba(253,248,244,0.6)",border:"1px solid rgba(255,255,255,0.15)",padding:"0.5rem"}}>Annuler</button>
+      </div>
+    </div>
   );
 }
 
-// ─── TASKS ───
+/* ═══════════════════════════════ TASKS ═══════════════════════════════ */
 function TasksTab({tasks,setTasks,guests,isAdmin}) {
   const [showModal,setShowModal]=useState(false);
   const [editT,setEditT]=useState(null);
@@ -136,86 +202,93 @@ function TasksTab({tasks,setTasks,guests,isAdmin}) {
   const del=(id)=>{const u=tasks.filter(t=>t.id!==id);setTasks(u);lsSave(KEYS.tasks,u);};
   const cycle=(task)=>{const c={todo:"inprogress",inprogress:"done",done:"todo"};const u=tasks.map(t=>t.id===task.id?{...t,status:c[t.status]}:t);setTasks(u);lsSave(KEYS.tasks,u);};
 
-  let filtered=tasks;
+  let filtered=[...tasks];
   if(filter!=="all")filtered=filtered.filter(t=>t.status===filter);
   if(filterPerson!=="all")filtered=filtered.filter(t=>t.assignee===filterPerson);
   const counts={todo:tasks.filter(t=>t.status==="todo").length,inprogress:tasks.filter(t=>t.status==="inprogress").length,done:tasks.filter(t=>t.status==="done").length};
 
-  return React.createElement('div',null,
-    // Stats
-    React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1rem",marginBottom:"1.5rem"}},
-      [["À faire",counts.todo,"#f0e6e0","#8b6355"],["En cours",counts.inprogress,"#fef3e2","#c47c2a"],["Terminées",counts.done,"#e8f5e9","#3a7d44"]].map(([l,c,bg,col])=>
-        React.createElement('div',{key:l,style:{background:bg,borderRadius:"1rem",padding:"1rem",textAlign:"center"}},
-          React.createElement('div',{style:{fontSize:"1.8rem",fontWeight:"700",color:col,fontFamily:"'Playfair Display',serif"}},c),
-          React.createElement('div',{style:{fontSize:"0.75rem",color:col,fontWeight:"700"}},l)
-        )
-      )
-    ),
-    // Filters
-    React.createElement('div',{style:{display:"flex",gap:"0.5rem",marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}},
-      ["all","todo","inprogress","done"].map(s=>
-        React.createElement('button',{key:s,onClick:()=>setFilter(s),style:{...btnS,padding:"0.35rem 0.8rem",fontSize:"0.78rem",background:filter===s?"#c4755a":"transparent",color:filter===s?"white":"#8b6355",border:filter===s?"none":"1.5px solid #d9c9bf"}},
-          {all:"Tous",todo:"À faire",inprogress:"En cours",done:"Fait"}[s])
-      ),
-      React.createElement('select',{value:filterPerson,onChange:e=>setFilterPerson(e.target.value),style:{...iStyle,width:"auto",padding:"0.35rem 0.7rem",fontSize:"0.78rem",marginLeft:"4px"}},
-        React.createElement('option',{value:"all"},"Toutes les personnes"),
-        people.map(p=>React.createElement('option',{key:p,value:p},p))
-      ),
-      isAdmin&&React.createElement('button',{onClick:openNew,style:{...btnP,fontSize:"0.82rem",padding:"0.45rem 0.9rem"}},"+ Tâche")
-    ),
-    // List
-    React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:"0.65rem"}},
-      filtered.length===0&&React.createElement('div',{style:{textAlign:"center",color:"#b89a8e",padding:"2rem",fontStyle:"italic"}},"Aucune tâche"),
-      filtered.map(task=>
-        React.createElement('div',{key:task.id,style:{background:"white",borderRadius:"1rem",padding:"1rem 1.2rem",border:"1.5px solid #f0e4dc",display:"flex",alignItems:"flex-start",gap:"0.8rem",animation:"fadeIn 0.2s ease"}},
-          React.createElement('button',{onClick:()=>cycle(task),style:{background:"none",border:"none",cursor:"pointer",flexShrink:0,marginTop:"2px"}},React.createElement(Badge,{status:task.status})),
-          React.createElement('div',{style:{flex:1,minWidth:0}},
-            React.createElement('div',{style:{fontFamily:"'Playfair Display',serif",fontSize:"0.95rem",color:"#2c1810",textDecoration:task.status==="done"?"line-through":"none",opacity:task.status==="done"?0.55:1}},task.title),
-            React.createElement('div',{style:{display:"flex",gap:"0.8rem",flexWrap:"wrap",fontSize:"0.77rem",color:"#8b6355",marginTop:"0.3rem"}},
-              task.assignee&&React.createElement('span',null,"👤 "+task.assignee),
-              task.datetime&&React.createElement('span',null,"📅 "+task.datetime.replace("T"," ").slice(0,16)),
-              task.location&&React.createElement('span',null,"📍 "+task.location),
-              task.category&&React.createElement('span',null,"🏷 "+task.category)
-            ),
-            task.note&&React.createElement('div',{style:{marginTop:"0.35rem",fontSize:"0.78rem",color:"#a07060",fontStyle:"italic"}},"💬 "+task.note)
-          ),
-          isAdmin&&React.createElement('div',{style:{display:"flex",gap:"0.3rem",flexShrink:0}},
-            React.createElement('button',{onClick:()=>openEdit(task),style:{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.9rem"}},"✏️"),
-            React.createElement('button',{onClick:()=>del(task.id),style:{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.9rem"}},"🗑")
-          )
-        )
-      )
-    ),
-    showModal&&React.createElement(Modal,{title:editT?"Modifier la tâche":"Nouvelle tâche",onClose:()=>setShowModal(false)},
-      React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:"0.9rem"}},
-        React.createElement('div',null,React.createElement('label',{style:lStyle},"Titre *"),React.createElement('input',{style:iStyle,value:form.title,onChange:e=>setForm({...form,title:e.target.value}),placeholder:"Description de la tâche…"})),
-        React.createElement('div',null,React.createElement('label',{style:lStyle},"Assignée à"),
-          React.createElement('input',{style:iStyle,value:form.assignee,onChange:e=>setForm({...form,assignee:e.target.value}),list:"plist",placeholder:"Nom…"}),
-          React.createElement('datalist',{id:"plist"},guests.map(g=>React.createElement('option',{key:g.id,value:g.name})))
-        ),
-        React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.8rem"}},
-          React.createElement('div',null,React.createElement('label',{style:lStyle},"Catégorie"),
-            React.createElement('select',{style:iStyle,value:form.category,onChange:e=>setForm({...form,category:e.target.value})},cats.map(c=>React.createElement('option',{key:c},c)))
-          ),
-          React.createElement('div',null,React.createElement('label',{style:lStyle},"Statut"),
-            React.createElement('select',{style:iStyle,value:form.status,onChange:e=>setForm({...form,status:e.target.value})},
-              React.createElement('option',{value:"todo"},"À faire"),React.createElement('option',{value:"inprogress"},"En cours"),React.createElement('option',{value:"done"},"Fait")
-            )
-          )
-        ),
-        React.createElement('div',null,React.createElement('label',{style:lStyle},"Date & heure"),React.createElement('input',{type:"datetime-local",style:iStyle,value:form.datetime,onChange:e=>setForm({...form,datetime:e.target.value})})),
-        React.createElement('div',null,React.createElement('label',{style:lStyle},"Lieu"),React.createElement('input',{style:iStyle,value:form.location,onChange:e=>setForm({...form,location:e.target.value}),placeholder:"Ex: Salle de réception…"})),
-        React.createElement('div',null,React.createElement('label',{style:lStyle},"Note"),React.createElement('textarea',{style:{...iStyle,height:"70px",resize:"vertical"},value:form.note,onChange:e=>setForm({...form,note:e.target.value})})),
-        React.createElement('div',{style:{display:"flex",gap:"0.7rem",justifyContent:"flex-end"}},
-          React.createElement('button',{style:btnS,onClick:()=>setShowModal(false)},"Annuler"),
-          React.createElement('button',{style:btnP,onClick:saveFn},"Enregistrer")
-        )
-      )
-    )
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1rem",marginBottom:"1.5rem"}}>
+        {[["À faire",counts.todo,"#f0e6e0","#8b6355"],["En cours",counts.inprogress,"#fef3e2","#c47c2a"],["Terminées",counts.done,"#e8f5e9","#3a7d44"]].map(([l,c,bg,col])=>(
+          <div key={l} style={{background:bg,borderRadius:"1rem",padding:"1rem",textAlign:"center"}}>
+            <div style={{fontSize:"1.8rem",fontWeight:"700",color:col,fontFamily:"'Playfair Display',serif"}}>{c}</div>
+            <div style={{fontSize:"0.75rem",color:col,fontWeight:"700"}}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"flex",gap:"0.5rem",marginBottom:"1rem",flexWrap:"wrap",alignItems:"center"}}>
+        {["all","todo","inprogress","done"].map(s=>(
+          <button key={s} onClick={()=>setFilter(s)} style={{...btnS,padding:"0.35rem 0.8rem",fontSize:"0.78rem",background:filter===s?"#c4755a":"transparent",color:filter===s?"white":"#8b6355",border:filter===s?"none":"1.5px solid #d9c9bf"}}>
+            {{all:"Tous",todo:"À faire",inprogress:"En cours",done:"Fait"}[s]}
+          </button>
+        ))}
+        <select value={filterPerson} onChange={e=>setFilterPerson(e.target.value)} style={{...iStyle,width:"auto",padding:"0.35rem 0.7rem",fontSize:"0.78rem",marginLeft:"4px"}}>
+          <option value="all">Toutes les personnes</option>
+          {people.map(p=><option key={p} value={p}>{p}</option>)}
+        </select>
+        {isAdmin&&<button onClick={openNew} style={{...btnP,fontSize:"0.82rem",padding:"0.45rem 0.9rem"}}>+ Tâche</button>}
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:"0.65rem"}}>
+        {filtered.length===0&&<div style={{textAlign:"center",color:"#b89a8e",padding:"2rem",fontStyle:"italic"}}>Aucune tâche</div>}
+        {filtered.map(task=>(
+          <div key={task.id} style={{background:"white",borderRadius:"1rem",padding:"1rem 1.2rem",border:"1.5px solid #f0e4dc",display:"flex",alignItems:"flex-start",gap:"0.8rem"}}>
+            <button onClick={()=>cycle(task)} style={{background:"none",border:"none",cursor:"pointer",flexShrink:0,marginTop:"2px"}}><Badge status={task.status}/></button>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:"0.95rem",color:"#2c1810",textDecoration:task.status==="done"?"line-through":"none",opacity:task.status==="done"?0.55:1}}>{task.title}</div>
+              <div style={{display:"flex",gap:"0.8rem",flexWrap:"wrap",fontSize:"0.77rem",color:"#8b6355",marginTop:"0.3rem"}}>
+                {task.assignee&&<span>👤 {task.assignee}</span>}
+                {task.datetime&&<span>📅 {task.datetime.replace("T"," ").slice(0,16)}</span>}
+                {task.location&&<span>📍 {task.location}</span>}
+                {task.category&&<span>🏷 {task.category}</span>}
+              </div>
+              {task.note&&<div style={{marginTop:"0.35rem",fontSize:"0.78rem",color:"#a07060",fontStyle:"italic"}}>💬 {task.note}</div>}
+            </div>
+            {isAdmin&&(
+              <div style={{display:"flex",gap:"0.3rem",flexShrink:0}}>
+                <button onClick={()=>openEdit(task)} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.9rem"}}>✏️</button>
+                <button onClick={()=>del(task.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.9rem"}}>🗑</button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {showModal&&(
+        <Modal title={editT?"Modifier la tâche":"Nouvelle tâche"} onClose={()=>setShowModal(false)}>
+          <div style={{display:"flex",flexDirection:"column",gap:"0.9rem"}}>
+            <div><label style={lStyle}>Titre *</label><input style={iStyle} value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Description de la tâche…"/></div>
+            <div>
+              <label style={lStyle}>Assignée à</label>
+              <input style={iStyle} value={form.assignee} onChange={e=>setForm({...form,assignee:e.target.value})} list="plist" placeholder="Nom…"/>
+              <datalist id="plist">{guests.map(g=><option key={g.id} value={g.name}/>)}</datalist>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.8rem"}}>
+              <div><label style={lStyle}>Catégorie</label>
+                <select style={iStyle} value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>
+                  {cats.map(c=><option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div><label style={lStyle}>Statut</label>
+                <select style={iStyle} value={form.status} onChange={e=>setForm({...form,status:e.target.value})}>
+                  <option value="todo">À faire</option><option value="inprogress">En cours</option><option value="done">Fait</option>
+                </select>
+              </div>
+            </div>
+            <div><label style={lStyle}>Date & heure</label><input type="datetime-local" style={iStyle} value={form.datetime} onChange={e=>setForm({...form,datetime:e.target.value})}/></div>
+            <div><label style={lStyle}>Lieu</label><input style={iStyle} value={form.location} onChange={e=>setForm({...form,location:e.target.value})} placeholder="Ex: Salle de réception…"/></div>
+            <div><label style={lStyle}>Note</label><textarea style={{...iStyle,height:"70px",resize:"vertical"}} value={form.note} onChange={e=>setForm({...form,note:e.target.value})}/></div>
+            <div style={{display:"flex",gap:"0.7rem",justifyContent:"flex-end"}}>
+              <button style={btnS} onClick={()=>setShowModal(false)}>Annuler</button>
+              <button style={btnP} onClick={saveFn}>Enregistrer</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
   );
 }
 
-// ─── PROVIDERS ───
+/* ═══════════════════════════════ PROVIDERS ═══════════════════════════════ */
 function ProvidersTab({providers,setProviders,isAdmin}) {
   const [showModal,setShowModal]=useState(false);
   const [editP,setEditP]=useState(null);
@@ -233,183 +306,285 @@ function ProvidersTab({providers,setProviders,isAdmin}) {
   };
   const del=(id)=>{const u=providers.filter(p=>p.id!==id);setProviders(u);lsSave(KEYS.providers,u);};
 
-  return React.createElement('div',null,
-    React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}},
-      React.createElement('div',{style:{fontSize:"0.83rem",color:"#8b6355"}},providers.length+" prestataires · "+providers.filter(p=>p.status==="confirmed").length+" confirmés"),
-      isAdmin&&React.createElement('button',{onClick:openNew,style:{...btnP,fontSize:"0.82rem",padding:"0.45rem 0.9rem"}},"+ Ajouter")
-    ),
-    React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:"1rem"}},
-      providers.map(p=>
-        React.createElement('div',{key:p.id,style:{background:"white",borderRadius:"1.2rem",padding:"1.2rem",border:"1.5px solid #f0e4dc",animation:"fadeIn 0.2s ease"}},
-          React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.6rem"}},
-            React.createElement('div',null,
-              React.createElement('div',{style:{fontSize:"1rem",marginBottom:"0.2rem"}},catIcon[p.category]||"✨"),
-              React.createElement('div',{style:{fontFamily:"'Playfair Display',serif",fontSize:"1rem",color:"#2c1810",fontWeight:"600"}},p.name),
-              React.createElement('div',{style:{fontSize:"0.73rem",color:"#b89a8e"}},p.category)
-            ),
-            React.createElement(Badge,{status:p.status})
-          ),
-          p.contact&&React.createElement('div',{style:{fontSize:"0.8rem",color:"#6b4c3b",marginBottom:"0.25rem"}},"📞 "+p.contact),
-          p.email&&React.createElement('div',{style:{fontSize:"0.8rem",color:"#6b4c3b",marginBottom:"0.25rem"}},"✉️ "+p.email),
-          p.note&&React.createElement('div',{style:{fontSize:"0.78rem",color:"#a07060",fontStyle:"italic",marginTop:"0.5rem",paddingTop:"0.5rem",borderTop:"1px solid #f5ece6"}},"💬 "+p.note),
-          isAdmin&&React.createElement('div',{style:{display:"flex",gap:"0.5rem",marginTop:"0.8rem",justifyContent:"flex-end"}},
-            React.createElement('button',{onClick:()=>openEdit(p),style:{background:"none",border:"none",cursor:"pointer",color:"#b89a8e"}},"✏️"),
-            React.createElement('button',{onClick:()=>del(p.id),style:{background:"none",border:"none",cursor:"pointer",color:"#d4917a"}},"🗑")
-          )
-        )
-      )
-    ),
-    showModal&&React.createElement(Modal,{title:editP?"Modifier":"Nouveau prestataire",onClose:()=>setShowModal(false)},
-      React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:"0.9rem"}},
-        React.createElement('div',null,React.createElement('label',{style:lStyle},"Nom *"),React.createElement('input',{style:iStyle,value:form.name,onChange:e=>setForm({...form,name:e.target.value})})),
-        React.createElement('div',null,React.createElement('label',{style:lStyle},"Catégorie"),React.createElement('select',{style:iStyle,value:form.category,onChange:e=>setForm({...form,category:e.target.value})},cats.map(c=>React.createElement('option',{key:c},c)))),
-        React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.8rem"}},
-          React.createElement('div',null,React.createElement('label',{style:lStyle},"Téléphone"),React.createElement('input',{style:iStyle,value:form.contact,onChange:e=>setForm({...form,contact:e.target.value})})),
-          React.createElement('div',null,React.createElement('label',{style:lStyle},"Statut"),React.createElement('select',{style:iStyle,value:form.status,onChange:e=>setForm({...form,status:e.target.value})},
-            React.createElement('option',{value:"pending"},"En attente"),React.createElement('option',{value:"inprogress"},"En cours"),React.createElement('option',{value:"confirmed"},"Confirmé")
-          ))
-        ),
-        React.createElement('div',null,React.createElement('label',{style:lStyle},"Email"),React.createElement('input',{style:iStyle,value:form.email,onChange:e=>setForm({...form,email:e.target.value})})),
-        React.createElement('div',null,React.createElement('label',{style:lStyle},"Notes"),React.createElement('textarea',{style:{...iStyle,height:"65px",resize:"vertical"},value:form.note,onChange:e=>setForm({...form,note:e.target.value})})),
-        React.createElement('div',{style:{display:"flex",gap:"0.7rem",justifyContent:"flex-end"}},
-          React.createElement('button',{style:btnS,onClick:()=>setShowModal(false)},"Annuler"),
-          React.createElement('button',{style:btnP,onClick:saveFn},"Enregistrer")
-        )
-      )
-    )
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.5rem"}}>
+        <div style={{fontSize:"0.83rem",color:"#8b6355"}}>{providers.length} prestataires · {providers.filter(p=>p.status==="confirmed").length} confirmés</div>
+        {isAdmin&&<button onClick={openNew} style={{...btnP,fontSize:"0.82rem",padding:"0.45rem 0.9rem"}}>+ Ajouter</button>}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:"1rem"}}>
+        {providers.map(p=>(
+          <div key={p.id} style={{background:"white",borderRadius:"1.2rem",padding:"1.2rem",border:"1.5px solid #f0e4dc"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.6rem"}}>
+              <div>
+                <div style={{fontSize:"1rem",marginBottom:"0.2rem"}}>{catIcon[p.category]||"✨"}</div>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1rem",color:"#2c1810",fontWeight:"600"}}>{p.name}</div>
+                <div style={{fontSize:"0.73rem",color:"#b89a8e"}}>{p.category}</div>
+              </div>
+              <Badge status={p.status}/>
+            </div>
+            {p.contact&&<div style={{fontSize:"0.8rem",color:"#6b4c3b",marginBottom:"0.25rem"}}>📞 {p.contact}</div>}
+            {p.email&&<div style={{fontSize:"0.8rem",color:"#6b4c3b",marginBottom:"0.25rem"}}>✉️ {p.email}</div>}
+            {p.note&&<div style={{fontSize:"0.78rem",color:"#a07060",fontStyle:"italic",marginTop:"0.5rem",paddingTop:"0.5rem",borderTop:"1px solid #f5ece6"}}>💬 {p.note}</div>}
+            {isAdmin&&(
+              <div style={{display:"flex",gap:"0.5rem",marginTop:"0.8rem",justifyContent:"flex-end"}}>
+                <button onClick={()=>openEdit(p)} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e"}}>✏️</button>
+                <button onClick={()=>del(p.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a"}}>🗑</button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {showModal&&(
+        <Modal title={editP?"Modifier":"Nouveau prestataire"} onClose={()=>setShowModal(false)}>
+          <div style={{display:"flex",flexDirection:"column",gap:"0.9rem"}}>
+            <div><label style={lStyle}>Nom *</label><input style={iStyle} value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></div>
+            <div><label style={lStyle}>Catégorie</label><select style={iStyle} value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>{cats.map(c=><option key={c}>{c}</option>)}</select></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.8rem"}}>
+              <div><label style={lStyle}>Téléphone</label><input style={iStyle} value={form.contact} onChange={e=>setForm({...form,contact:e.target.value})}/></div>
+              <div><label style={lStyle}>Statut</label>
+                <select style={iStyle} value={form.status} onChange={e=>setForm({...form,status:e.target.value})}>
+                  <option value="pending">En attente</option><option value="inprogress">En cours</option><option value="confirmed">Confirmé</option>
+                </select>
+              </div>
+            </div>
+            <div><label style={lStyle}>Email</label><input style={iStyle} value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></div>
+            <div><label style={lStyle}>Notes</label><textarea style={{...iStyle,height:"65px",resize:"vertical"}} value={form.note} onChange={e=>setForm({...form,note:e.target.value})}/></div>
+            <div style={{display:"flex",gap:"0.7rem",justifyContent:"flex-end"}}>
+              <button style={btnS} onClick={()=>setShowModal(false)}>Annuler</button>
+              <button style={btnP} onClick={saveFn}>Enregistrer</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
   );
 }
 
-// ─── ROOMS ───
+/* ═══════════════════════════════ ROOMS ═══════════════════════════════ */
+function BedCard({bed, night, isAdmin, onRemove}) {
+  const gs = bedGuests(bed, night);
+  const bg = BED_COLORS[bed.bedType] || "#f5f5f5";
+  const icon = BED_ICONS[bed.bedType] || "🛏";
+  const isPerNight = !!bed.night1;
+  return (
+    <div style={{background:bg, borderRadius:"0.75rem", padding:"0.7rem 0.9rem", border:"1px solid rgba(0,0,0,0.07)"}}>
+      <div style={{display:"flex",alignItems:"center",gap:"0.4rem",marginBottom:"0.35rem"}}>
+        <span style={{fontSize:"0.9rem"}}>{icon}</span>
+        <span style={{fontSize:"0.72rem",fontWeight:"700",color:"#5a3a2a",letterSpacing:"0.04em",textTransform:"uppercase"}}>{bed.bedType}</span>
+        {isPerNight&&<span style={{fontSize:"0.65rem",color:"#7a5a4a",background:"rgba(0,0,0,0.07)",borderRadius:"1rem",padding:"0.1rem 0.45rem",marginLeft:"auto"}}>par nuit</span>}
+      </div>
+      {bed.note&&<div style={{fontSize:"0.7rem",color:"#7a5a4a",fontStyle:"italic",marginBottom:"0.4rem",paddingBottom:"0.35rem",borderBottom:"1px dashed rgba(0,0,0,0.1)"}}>{bed.note}</div>}
+      <div style={{display:"flex",flexWrap:"wrap",gap:"0.3rem"}}>
+        {gs.length===0&&<span style={{color:"#b89a8e",fontSize:"0.75rem",fontStyle:"italic"}}>Vide cette nuit</span>}
+        {gs.map(g=>(
+          <span key={g} style={{background:"rgba(255,255,255,0.75)",color:"#5a3a2a",borderRadius:"2rem",padding:"0.15rem 0.55rem",fontSize:"0.75rem",display:"flex",alignItems:"center",gap:"0.2rem",border:"1px solid rgba(0,0,0,0.07)"}}>
+            {g}
+            {isAdmin&&<button onClick={()=>onRemove(bed.bedId,g)} style={{background:"none",border:"none",cursor:"pointer",color:"#c4755a",padding:0,fontSize:"0.8rem",lineHeight:1}}>×</button>}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RoomsTab({rooms,setRooms,guests,isAdmin}) {
+  const [night,setNight]=useState(1);
   const [showRoomModal,setShowRoomModal]=useState(false);
   const [showAssignModal,setShowAssignModal]=useState(false);
   const [editRoom,setEditRoom]=useState(null);
   const [selRoom,setSelRoom]=useState(null);
-  const [roomForm,setRoomForm]=useState({name:"",capacity:2,type:"Double",location:""});
+  const [selBedId,setSelBedId]=useState("");
+  const [roomForm,setRoomForm]=useState({name:"",location:""});
   const [customGuest,setCustomGuest]=useState("");
   const [selGuest,setSelGuest]=useState("");
 
-  const assigned=rooms.flatMap(r=>r.guests);
-  const available=guests.filter(g=>!assigned.includes(g.name));
-  const typeColor={Suite:"#f3e8ff",Double:"#e8f4fd",Twin:"#fff0f0",Triple:"#fef9e8",Familiale:"#e8f5e9",Mixte:"#f5f5f5","Double + Twin":"#fce8f5","Lit convertible":"#fafae8"};
+  const assignedThisNight=rooms.flatMap(r=>r.beds.flatMap(b=>bedGuests(b,night)));
+  const available=guests.filter(g=>!assignedThisNight.includes(g.name));
 
-  const openRoomEdit=(r)=>{if(!isAdmin)return;setEditRoom(r);setRoomForm({name:r.name,capacity:r.capacity,type:r.type,location:r.location||""});setShowRoomModal(true);};
-  const openNewRoom=()=>{if(!isAdmin)return;setEditRoom(null);setRoomForm({name:"",capacity:2,type:"Double",location:""});setShowRoomModal(true);};
+  const openRoomEdit=(r)=>{if(!isAdmin)return;setEditRoom(r);setRoomForm({name:r.name,location:r.location||""});setShowRoomModal(true);};
+  const openNewRoom=()=>{if(!isAdmin)return;setEditRoom(null);setRoomForm({name:"",location:""});setShowRoomModal(true);};
   const saveRoom=()=>{
     if(!roomForm.name.trim())return;
-    const updated=editRoom?rooms.map(r=>r.id===editRoom.id?{...r,...roomForm}:r):[...rooms,{...roomForm,id:Date.now(),guests:[]}];
+    const updated=editRoom
+      ?rooms.map(r=>r.id===editRoom.id?{...r,...roomForm}:r)
+      :[...rooms,{...roomForm,id:Date.now(),beds:[{bedId:"b"+Date.now(),bedType:"Double",guests:[]}]}];
     setRooms(updated);lsSave(KEYS.rooms,updated);setShowRoomModal(false);
   };
   const delRoom=(id)=>{const u=rooms.filter(r=>r.id!==id);setRooms(u);lsSave(KEYS.rooms,u);};
-  const openAssign=(room)=>{if(!isAdmin)return;setSelRoom(room);setSelGuest("");setCustomGuest("");setShowAssignModal(true);};
+
+  const openAssign=(room)=>{if(!isAdmin)return;setSelRoom(room);setSelBedId(room.beds[0]?.bedId||"");setSelGuest("");setCustomGuest("");setShowAssignModal(true);};
+
   const addGuest=()=>{
     const name=(customGuest.trim()||selGuest).trim();
-    if(!name||!selRoom)return;
-    const room=rooms.find(r=>r.id===selRoom.id);
-    if(room.guests.includes(name))return;
-    const updated=rooms.map(r=>r.id===selRoom.id?{...r,guests:[...r.guests,name]}:r);
+    if(!name||!selRoom||!selBedId)return;
+    const updated=rooms.map(r=>{
+      if(r.id!==selRoom.id)return r;
+      return {...r,beds:r.beds.map(b=>{
+        if(b.bedId!==selBedId)return b;
+        if(b.night1){
+          if(night===1)return {...b,night1:[...(b.night1||[]),name]};
+          else return {...b,night2:[...(b.night2||[]),name]};
+        }
+        if((b.guests||[]).includes(name))return b;
+        return {...b,guests:[...(b.guests||[]),name]};
+      })};
+    });
     setRooms(updated);lsSave(KEYS.rooms,updated);
-    setSelRoom({...selRoom,guests:[...selRoom.guests,name]});
+    setSelRoom(updated.find(r=>r.id===selRoom.id));
     setSelGuest("");setCustomGuest("");
   };
-  const removeGuest=(roomId,gName)=>{
-    const updated=rooms.map(r=>r.id===roomId?{...r,guests:r.guests.filter(g=>g!==gName)}:r);
+
+  const removeGuest=(roomId,bedId,gName)=>{
+    const updated=rooms.map(r=>{
+      if(r.id!==roomId)return r;
+      return {...r,beds:r.beds.map(b=>{
+        if(b.bedId!==bedId)return b;
+        if(b.night1){
+          if(night===1)return {...b,night1:(b.night1||[]).filter(g=>g!==gName)};
+          else return {...b,night2:(b.night2||[]).filter(g=>g!==gName)};
+        }
+        return {...b,guests:(b.guests||[]).filter(g=>g!==gName)};
+      })};
+    });
     setRooms(updated);lsSave(KEYS.rooms,updated);
-    if(selRoom?.id===roomId)setSelRoom({...selRoom,guests:selRoom.guests.filter(g=>g!==gName)});
+    if(selRoom?.id===roomId)setSelRoom(updated.find(r=>r.id===roomId));
   };
 
-  const total=rooms.reduce((s,r)=>s+r.capacity,0);
-  const occ=rooms.reduce((s,r)=>s+r.guests.length,0);
+  const totalPlaced=rooms.flatMap(r=>r.beds.flatMap(b=>bedGuests(b,night))).length;
+  const nightLabel=["🌙 Nuit du 14 juillet","🌙 Nuit du 15 juillet"];
 
-  return React.createElement('div',null,
-    React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1rem",marginBottom:"1.5rem"}},
-      [[rooms.length,"Chambres","#f0e6e0","#8b6355"],[occ,"Invités placés","#e8f5e9","#3a7d44"],[total-occ,"Places libres","#fef3e2","#c47c2a"]].map(([c,l,bg,col])=>
-        React.createElement('div',{key:l,style:{background:bg,borderRadius:"1rem",padding:"1rem",textAlign:"center"}},
-          React.createElement('div',{style:{fontSize:"1.8rem",fontWeight:"700",color:col,fontFamily:"'Playfair Display',serif"}},c),
-          React.createElement('div',{style:{fontSize:"0.75rem",color:col,fontWeight:"700"}},l)
-        )
-      )
-    ),
-    isAdmin&&React.createElement('div',{style:{display:"flex",justifyContent:"flex-end",marginBottom:"1rem"}},
-      React.createElement('button',{onClick:openNewRoom,style:{...btnP,fontSize:"0.82rem",padding:"0.45rem 0.9rem"}},"+ Chambre")
-    ),
-    React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"1rem"}},
-      rooms.map(room=>{
-        const occ2=room.guests.length/Math.max(room.capacity,1);
-        return React.createElement('div',{key:room.id,style:{background:"white",borderRadius:"1.2rem",padding:"1.2rem",border:"1.5px solid #f0e4dc",animation:"fadeIn 0.2s ease"}},
-          React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.5rem"}},
-            React.createElement('div',null,
-              React.createElement('span',{style:{background:typeColor[room.type]||"#f0e6e0",borderRadius:"0.35rem",padding:"0.12rem 0.45rem",fontSize:"0.68rem",fontWeight:"700",color:"#6b4c3b",display:"inline-block",marginBottom:"0.3rem"}},room.type),
-              React.createElement('div',{style:{fontFamily:"'Playfair Display',serif",fontSize:"0.95rem",color:"#2c1810",fontWeight:"600"}},room.name),
-              room.location&&React.createElement('div',{style:{fontSize:"0.72rem",color:"#b89a8e"}},"📍 "+room.location)
-            ),
-            React.createElement('span',{style:{fontSize:"0.8rem",color:"#8b6355",fontWeight:"600",flexShrink:0}},room.guests.length+"/"+room.capacity)
-          ),
-          React.createElement('div',{style:{background:"#f5ece6",borderRadius:"1rem",height:"5px",marginBottom:"0.7rem",overflow:"hidden"}},
-            React.createElement('div',{style:{width:(occ2*100)+"%",height:"100%",background:occ2>=1?"#c4755a":"#7bc47a",borderRadius:"1rem",transition:"width 0.3s"}})
-          ),
-          React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:"0.35rem",marginBottom:"0.7rem",minHeight:"26px"}},
-            room.guests.length===0&&React.createElement('span',{style:{color:"#c5a898",fontSize:"0.78rem",fontStyle:"italic"}},"Vide"),
-            room.guests.map(g=>React.createElement('span',{key:g,style:{background:"#fdf0ea",color:"#8b6355",borderRadius:"2rem",padding:"0.18rem 0.55rem",fontSize:"0.73rem",display:"flex",alignItems:"center",gap:"0.25rem"}},
-              g,
-              isAdmin&&React.createElement('button',{onClick:()=>removeGuest(room.id,g),style:{background:"none",border:"none",cursor:"pointer",color:"#c4755a",padding:0,fontSize:"0.85rem",lineHeight:1}},"×")
-            ))
-          ),
-          isAdmin&&React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
-            React.createElement('button',{onClick:()=>openAssign(room),style:{...btnS,fontSize:"0.75rem",padding:"0.3rem 0.7rem"}},"+ Assigner"),
-            React.createElement('div',{style:{display:"flex",gap:"0.3rem"}},
-              React.createElement('button',{onClick:()=>openRoomEdit(room),style:{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.85rem"}},"✏️"),
-              React.createElement('button',{onClick:()=>delRoom(room.id),style:{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.85rem"}},"🗑")
-            )
-          )
-        );
-      })
-    ),
-    showRoomModal&&React.createElement(Modal,{title:editRoom?"Modifier la chambre":"Nouvelle chambre",onClose:()=>setShowRoomModal(false)},
-      React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:"0.9rem"}},
-        React.createElement('div',null,React.createElement('label',{style:lStyle},"Nom *"),React.createElement('input',{style:iStyle,value:roomForm.name,onChange:e=>setRoomForm({...roomForm,name:e.target.value})})),
-        React.createElement('div',null,React.createElement('label',{style:lStyle},"Localisation"),React.createElement('input',{style:iStyle,value:roomForm.location,onChange:e=>setRoomForm({...roomForm,location:e.target.value}),placeholder:"Ex: Gite Rive droite…"})),
-        React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.8rem"}},
-          React.createElement('div',null,React.createElement('label',{style:lStyle},"Type de lit"),
-            React.createElement('select',{style:iStyle,value:roomForm.type,onChange:e=>setRoomForm({...roomForm,type:e.target.value})},
-              ["Simple","Double","Twin","Triple","Suite","Familiale","Mixte","Double + Twin","Lit convertible"].map(t=>React.createElement('option',{key:t},t))
-            )
-          ),
-          React.createElement('div',null,React.createElement('label',{style:lStyle},"Capacité"),React.createElement('input',{type:"number",min:"1",max:"10",style:iStyle,value:roomForm.capacity,onChange:e=>setRoomForm({...roomForm,capacity:parseInt(e.target.value)||1})}))
-        ),
-        React.createElement('div',{style:{display:"flex",gap:"0.7rem",justifyContent:"flex-end"}},
-          React.createElement('button',{style:btnS,onClick:()=>setShowRoomModal(false)},"Annuler"),
-          React.createElement('button',{style:btnP,onClick:saveRoom},"Enregistrer")
-        )
-      )
-    ),
-    showAssignModal&&selRoom&&React.createElement(Modal,{title:"Chambre : "+selRoom.name,onClose:()=>setShowAssignModal(false)},
-      React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:"1rem"}},
-        React.createElement('div',{style:{fontSize:"0.82rem",color:"#8b6355",background:"#f9f2ee",padding:"0.6rem 0.8rem",borderRadius:"0.6rem"}},selRoom.guests.length+"/"+selRoom.capacity+" places occupées"),
-        available.length>0&&React.createElement('div',null,
-          React.createElement('label',{style:lStyle},"Invité de la liste"),
-          React.createElement('select',{style:iStyle,value:selGuest,onChange:e=>setSelGuest(e.target.value)},
-            React.createElement('option',{value:""},"Choisir…"),
-            available.map(g=>React.createElement('option',{key:g.id,value:g.name},g.name+" ("+g.group+")"))
-          )
-        ),
-        React.createElement('div',null,React.createElement('label',{style:lStyle},"Ou saisir un nom"),React.createElement('input',{style:iStyle,value:customGuest,onChange:e=>setCustomGuest(e.target.value),placeholder:"Prénom Nom"})),
-        React.createElement('button',{style:btnP,onClick:addGuest},"Ajouter à la chambre"),
-        selRoom.guests.length>0&&React.createElement('div',null,
-          React.createElement('label',{style:lStyle},"Occupants"),
-          React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:"0.4rem"}},
-            selRoom.guests.map(g=>React.createElement('span',{key:g,style:{background:"#fdf0ea",color:"#8b6355",borderRadius:"2rem",padding:"0.25rem 0.7rem",fontSize:"0.8rem",display:"flex",alignItems:"center",gap:"0.35rem"}},
-              g,React.createElement('button',{onClick:()=>removeGuest(selRoom.id,g),style:{background:"none",border:"none",cursor:"pointer",color:"#c4755a",padding:0,fontSize:"0.9rem"}},"×")
-            ))
-          )
-        )
-      )
-    )
+  return (
+    <div>
+      {/* Night toggle */}
+      <div style={{display:"flex",gap:"0.4rem",marginBottom:"1.5rem",background:"white",padding:"0.4rem",borderRadius:"1rem",border:"1.5px solid #f0e4dc",width:"fit-content"}}>
+        {[1,2].map(n=>(
+          <button key={n} onClick={()=>setNight(n)} style={{padding:"0.5rem 1.1rem",borderRadius:"0.7rem",border:"none",cursor:"pointer",fontFamily:"'Lora',serif",fontSize:"0.84rem",fontWeight:night===n?"600":"400",background:night===n?"linear-gradient(135deg,#c4755a,#a85840)":"transparent",color:night===n?"white":"#8b6355",transition:"all 0.2s"}}>
+            {nightLabel[n-1]}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1rem",marginBottom:"1.5rem"}}>
+        {[[rooms.length,"Chambres","#f0e6e0","#8b6355"],[totalPlaced,"Placés cette nuit","#e8f5e9","#3a7d44"],[guests.length-totalPlaced,"Non placés","#fef3e2","#c47c2a"]].map(([c,l,bg,col])=>(
+          <div key={l} style={{background:bg,borderRadius:"1rem",padding:"1rem",textAlign:"center"}}>
+            <div style={{fontSize:"1.8rem",fontWeight:"700",color:col,fontFamily:"'Playfair Display',serif"}}>{c}</div>
+            <div style={{fontSize:"0.75rem",color:col,fontWeight:"700"}}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      {isAdmin&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:"1rem"}}>
+        <button onClick={openNewRoom} style={{...btnP,fontSize:"0.82rem",padding:"0.45rem 0.9rem"}}>+ Chambre</button>
+      </div>}
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))",gap:"1rem"}}>
+        {rooms.map(room=>{
+          const roomGs=room.beds.flatMap(b=>bedGuests(b,night));
+          return (
+            <div key={room.id} style={{background:"white",borderRadius:"1.2rem",padding:"1.2rem",border:"1.5px solid #f0e4dc"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"0.8rem"}}>
+                <div>
+                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1rem",color:"#2c1810",fontWeight:"600"}}>{room.name}</div>
+                  {room.location&&<div style={{fontSize:"0.72rem",color:"#b89a8e"}}>📍 {room.location}</div>}
+                </div>
+                <span style={{fontSize:"0.77rem",color:"#8b6355",fontWeight:"600",background:"#f5ece6",padding:"0.2rem 0.6rem",borderRadius:"2rem",flexShrink:0}}>{roomGs.length} pers.</span>
+              </div>
+
+              {/* Beds list */}
+              <div style={{display:"flex",flexDirection:"column",gap:"0.5rem",marginBottom:"0.8rem"}}>
+                {room.beds.map(bed=>(
+                  <BedCard key={bed.bedId} bed={bed} night={night} isAdmin={isAdmin} onRemove={(bedId,g)=>removeGuest(room.id,bedId,g)}/>
+                ))}
+              </div>
+
+              {isAdmin&&(
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:"0.6rem",borderTop:"1px solid #f5ece6"}}>
+                  <button onClick={()=>openAssign(room)} style={{...btnS,fontSize:"0.75rem",padding:"0.3rem 0.7rem"}}>+ Assigner</button>
+                  <div style={{display:"flex",gap:"0.3rem"}}>
+                    <button onClick={()=>openRoomEdit(room)} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.85rem"}}>✏️</button>
+                    <button onClick={()=>delRoom(room.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.85rem"}}>🗑</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Room edit modal */}
+      {showRoomModal&&(
+        <Modal title={editRoom?"Modifier la chambre":"Nouvelle chambre"} onClose={()=>setShowRoomModal(false)}>
+          <div style={{display:"flex",flexDirection:"column",gap:"0.9rem"}}>
+            <div><label style={lStyle}>Nom *</label><input style={iStyle} value={roomForm.name} onChange={e=>setRoomForm({...roomForm,name:e.target.value})}/></div>
+            <div><label style={lStyle}>Localisation</label><input style={iStyle} value={roomForm.location} onChange={e=>setRoomForm({...roomForm,location:e.target.value})} placeholder="Ex: Gite…"/></div>
+            <div style={{display:"flex",gap:"0.7rem",justifyContent:"flex-end"}}>
+              <button style={btnS} onClick={()=>setShowRoomModal(false)}>Annuler</button>
+              <button style={btnP} onClick={saveRoom}>Enregistrer</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Assign modal */}
+      {showAssignModal&&selRoom&&(
+        <Modal title={"Assigner — "+selRoom.name} onClose={()=>setShowAssignModal(false)}>
+          <div style={{display:"flex",flexDirection:"column",gap:"0.9rem"}}>
+            <div style={{background:"#f9f2ee",padding:"0.55rem 0.8rem",borderRadius:"0.6rem",fontSize:"0.8rem",color:"#8b6355",fontWeight:"600"}}>
+              {nightLabel[night-1]}
+            </div>
+            <div>
+              <label style={lStyle}>Lit cible</label>
+              <select style={iStyle} value={selBedId} onChange={e=>setSelBedId(e.target.value)}>
+                {selRoom.beds.map(b=>(
+                  <option key={b.bedId} value={b.bedId}>
+                    {BED_ICONS[b.bedType]||"🛏"} {b.bedType} — {bedGuests(b,night).length} pers.
+                    {b.night1?" (par nuit)":""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {available.length>0&&(
+              <div>
+                <label style={lStyle}>Invité de la liste</label>
+                <select style={iStyle} value={selGuest} onChange={e=>setSelGuest(e.target.value)}>
+                  <option value="">Choisir…</option>
+                  {available.map(g=><option key={g.id} value={g.name}>{g.name} ({g.group})</option>)}
+                </select>
+              </div>
+            )}
+            <div><label style={lStyle}>Ou saisir un nom</label><input style={iStyle} value={customGuest} onChange={e=>setCustomGuest(e.target.value)} placeholder="Prénom Nom"/></div>
+            <button style={btnP} onClick={addGuest}>Ajouter</button>
+
+            <div>
+              <label style={lStyle}>État actuel de la chambre</label>
+              {selRoom.beds.map(b=>{
+                const gs=bedGuests(b,night);
+                return (
+                  <div key={b.bedId} style={{background:BED_COLORS[b.bedType]||"#f5f5f5",borderRadius:"0.7rem",padding:"0.5rem 0.8rem",marginBottom:"0.4rem"}}>
+                    <div style={{fontSize:"0.73rem",fontWeight:"700",color:"#5a3a2a",marginBottom:"0.3rem"}}>{BED_ICONS[b.bedType]||"🛏"} {b.bedType}</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:"0.3rem"}}>
+                      {gs.length===0&&<span style={{color:"#b89a8e",fontSize:"0.73rem",fontStyle:"italic"}}>Vide</span>}
+                      {gs.map(g=>(
+                        <span key={g} style={{background:"rgba(255,255,255,0.75)",color:"#5a3a2a",borderRadius:"2rem",padding:"0.15rem 0.5rem",fontSize:"0.73rem",display:"flex",alignItems:"center",gap:"0.2rem"}}>
+                          {g}
+                          <button onClick={()=>removeGuest(selRoom.id,b.bedId,g)} style={{background:"none",border:"none",cursor:"pointer",color:"#c4755a",padding:0,fontSize:"0.8rem"}}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
   );
 }
 
-// ─── APP ───
+/* ═══════════════════════════════ APP ═══════════════════════════════ */
 function App() {
   const [tab,setTab]=useState("tasks");
   const [tasks,setTasks]=useState(initTasks);
@@ -431,47 +606,48 @@ function App() {
   },[]);
 
   const daysLeft=Math.ceil((new Date("2026-07-15")-new Date())/86400000);
+  if(!loaded)return <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",fontFamily:"'Playfair Display',serif",color:"#c4755a",fontSize:"1.2rem"}}>Chargement…</div>;
 
-  if(!loaded)return React.createElement('div',{style:{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",fontFamily:"'Playfair Display',serif",color:"#c4755a",fontSize:"1.2rem"}},"Chargement…");
+  return (
+    <div style={{minHeight:"100vh",background:"#fdf8f4",fontFamily:"'Lora',serif"}}>
+      {showAdminLock&&<AdminLock onUnlock={()=>{setIsAdmin(true);setShowAdminLock(false);}} onCancel={()=>setShowAdminLock(false)}/>}
 
-  return React.createElement('div',{style:{minHeight:"100vh",background:"#fdf8f4",fontFamily:"'Lora',serif"}},
-    showAdminLock&&React.createElement(AdminLock,{onUnlock:()=>{setIsAdmin(true);setShowAdminLock(false);}}),
+      <div style={{background:"linear-gradient(135deg,#3d1f15 0%,#6b2d1a 50%,#8b3a20 100%)",padding:"1.8rem 1.5rem 1.4rem",textAlign:"center",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",inset:0,opacity:0.04,backgroundImage:"radial-gradient(circle at 25% 50%,white 1px,transparent 1px),radial-gradient(circle at 75% 20%,white 1px,transparent 1px)",backgroundSize:"40px 40px"}}/>
+        <div style={{position:"absolute",top:"1rem",right:"1rem"}}>
+          {isAdmin
+            ?<button onClick={()=>setIsAdmin(false)} style={{background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:"2rem",color:"#fdf8f4",fontSize:"0.73rem",padding:"0.3rem 0.7rem",cursor:"pointer",fontFamily:"'Lora',serif"}}>🔓 Admin</button>
+            :<button onClick={()=>setShowAdminLock(true)} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"2rem",color:"rgba(253,248,244,0.6)",fontSize:"0.73rem",padding:"0.3rem 0.7rem",cursor:"pointer",fontFamily:"'Lora',serif"}}>🔐</button>
+          }
+        </div>
+        <div style={{fontSize:"1.6rem",marginBottom:"0.3rem"}}>💍</div>
+        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.65rem",color:"#fdf8f4",fontWeight:"400",letterSpacing:"0.03em",margin:"0 0 0.25rem"}}>Notre Mariage</h1>
+        <p style={{color:"#e8c4a8",fontSize:"0.82rem",margin:"0 0 0.8rem",fontStyle:"italic"}}>15 juillet 2026</p>
+        <div style={{display:"inline-flex",alignItems:"center",gap:"0.5rem",background:"rgba(255,255,255,0.12)",borderRadius:"2rem",padding:"0.35rem 1rem"}}>
+          <span style={{color:"#f5d5b0",fontSize:"1.3rem",fontFamily:"'Playfair Display',serif",fontWeight:"700"}}>{daysLeft}</span>
+          <span style={{color:"#e8c4a8",fontSize:"0.76rem"}}>jours restants</span>
+        </div>
+      </div>
 
-    // Header
-    React.createElement('div',{style:{background:"linear-gradient(135deg,#3d1f15 0%,#6b2d1a 50%,#8b3a20 100%)",padding:"1.8rem 1.5rem 1.4rem",textAlign:"center",position:"relative",overflow:"hidden"}},
-      React.createElement('div',{style:{position:"absolute",inset:0,opacity:0.04,backgroundImage:"radial-gradient(circle at 25% 50%,white 1px,transparent 1px),radial-gradient(circle at 75% 20%,white 1px,transparent 1px)",backgroundSize:"40px 40px"}}),
-      React.createElement('div',{style:{position:"absolute",top:"1rem",right:"1rem"}},
-        isAdmin
-          ? React.createElement('button',{onClick:()=>setIsAdmin(false),style:{background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:"2rem",color:"#fdf8f4",fontSize:"0.73rem",padding:"0.3rem 0.7rem",cursor:"pointer",fontFamily:"'Lora',serif"}},"🔓 Admin")
-          : React.createElement('button',{onClick:()=>setShowAdminLock(true),style:{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"2rem",color:"rgba(253,248,244,0.6)",fontSize:"0.73rem",padding:"0.3rem 0.7rem",cursor:"pointer",fontFamily:"'Lora',serif"}},"🔐")
-      ),
-      React.createElement('div',{style:{fontSize:"1.6rem",marginBottom:"0.3rem"}},"💍"),
-      React.createElement('h1',{style:{fontFamily:"'Playfair Display',serif",fontSize:"1.65rem",color:"#fdf8f4",fontWeight:"400",letterSpacing:"0.03em",margin:"0 0 0.25rem"}},"Notre Mariage"),
-      React.createElement('p',{style:{color:"#e8c4a8",fontSize:"0.82rem",margin:"0 0 0.8rem",fontStyle:"italic"}},"15 juillet 2026"),
-      React.createElement('div',{style:{display:"inline-flex",alignItems:"center",gap:"0.5rem",background:"rgba(255,255,255,0.12)",borderRadius:"2rem",padding:"0.35rem 1rem"}},
-        React.createElement('span',{style:{color:"#f5d5b0",fontSize:"1.3rem",fontFamily:"'Playfair Display',serif",fontWeight:"700"}},daysLeft),
-        React.createElement('span',{style:{color:"#e8c4a8",fontSize:"0.76rem"}},"jours restants")
-      )
-    ),
+      <div style={{display:"flex",borderBottom:"2px solid #f0e4dc",background:"white",padding:"0 0.5rem"}}>
+        {[["tasks","🗂 Tâches"],["providers","🤝 Prestataires"],["rooms","🏠 Chambres"]].map(([id,label])=>(
+          <button key={id} onClick={()=>setTab(id)} style={{padding:"0.9rem 1rem",background:"none",border:"none",cursor:"pointer",borderBottom:tab===id?"2.5px solid #c4755a":"2.5px solid transparent",marginBottom:"-2px",fontFamily:"'Lora',serif",fontSize:"0.85rem",color:tab===id?"#c4755a":"#8b6355",fontWeight:tab===id?"600":"400",transition:"all 0.2s",whiteSpace:"nowrap"}}>
+            {label}
+          </button>
+        ))}
+        {isAdmin&&<div style={{marginLeft:"auto",display:"flex",alignItems:"center",padding:"0 0.8rem",fontSize:"0.75rem",color:"#c4755a",fontWeight:"600"}}>✦ Mode admin actif</div>}
+      </div>
 
-    // Tabs
-    React.createElement('div',{style:{display:"flex",borderBottom:"2px solid #f0e4dc",background:"white",padding:"0 0.5rem"}},
-      [["tasks","🗂 Tâches"],["providers","🤝 Prestataires"],["rooms","🏠 Chambres"]].map(([id,label])=>
-        React.createElement('button',{key:id,onClick:()=>setTab(id),style:{padding:"0.9rem 1rem",background:"none",border:"none",cursor:"pointer",borderBottom:tab===id?"2.5px solid #c4755a":"2.5px solid transparent",marginBottom:"-2px",fontFamily:"'Lora',serif",fontSize:"0.85rem",color:tab===id?"#c4755a":"#8b6355",fontWeight:tab===id?"600":"400",transition:"all 0.2s",whiteSpace:"nowrap"}},label)
-      ),
-      isAdmin&&React.createElement('div',{style:{marginLeft:"auto",display:"flex",alignItems:"center",padding:"0 0.8rem",fontSize:"0.75rem",color:"#c4755a",fontWeight:"600"}},"✦ Mode admin actif")
-    ),
-
-    // Content
-    React.createElement('div',{style:{padding:"1.4rem",maxWidth:"900px",margin:"0 auto"}},
-      tab==="tasks"&&React.createElement(TasksTab,{tasks,setTasks,guests,isAdmin}),
-      tab==="providers"&&React.createElement(ProvidersTab,{providers,setProviders,isAdmin}),
-      tab==="rooms"&&React.createElement(RoomsTab,{rooms,setRooms,guests,isAdmin})
-    )
+      <div style={{padding:"1.4rem",maxWidth:"960px",margin:"0 auto"}}>
+        {tab==="tasks"&&<TasksTab tasks={tasks} setTasks={setTasks} guests={guests} isAdmin={isAdmin}/>}
+        {tab==="providers"&&<ProvidersTab providers={providers} setProviders={setProviders} isAdmin={isAdmin}/>}
+        {tab==="rooms"&&<RoomsTab rooms={rooms} setRooms={setRooms} guests={guests} isAdmin={isAdmin}/>}
+      </div>
+    </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
