@@ -36,7 +36,7 @@ const ROLES = {
 };
 const PASSWORDS = { weddingPlanner:"150726", admin:"280623" };
 
-const KEYS = { tasks:"w-tasks4", providers:"w-providers4", rooms:"w-rooms4" };
+const KEYS = { tasks:"w-tasks4", providers:"w-providers5", rooms:"w-rooms4" };
 function lsLoad(key) { try { const v=localStorage.getItem(key); return v?JSON.parse(v):null; } catch { return null; } }
 function lsSave(key,data) { try { localStorage.setItem(key,JSON.stringify(data)); } catch(e) {} }
 
@@ -109,11 +109,16 @@ const initTasks=[
 ];
 
 const initProviders=[
-  {id:1,name:"Traiteur",category:"Traiteur / Restauration",contact:"",email:"",note:"",status:"confirmed"},
-  {id:2,name:"Photographe",category:"Photographe / Vidéaste",contact:"",email:"",note:"",status:"pending"},
-  {id:3,name:"Fleuriste",category:"Fleuriste / Décoration",contact:"",email:"",note:"",status:"pending"},
-  {id:4,name:"Lieu",category:"Lieu / Salle de réception",contact:"",email:"",note:"",status:"confirmed"},
-  {id:5,name:"Illustratrice",category:"Illustratrice",contact:"",email:"",note:"",status:"inprogress"},
+  {id:1, name:"Pastoune",            category:"Traiteur / Restauration",   contact:"",email:"",note:"Foodtruck traiteur", status:"confirmed"},
+  {id:2, name:"OHA",                 category:"Photographe / Vidéaste",    contact:"",email:"",note:"",                  status:"confirmed"},
+  {id:3, name:"Ingénieuse création", category:"Fleuriste / Décoration",    contact:"",email:"",note:"Fleuriste",          status:"confirmed"},
+  {id:4, name:"Erigoye",             category:"Lieu / Salle de réception", contact:"",email:"",note:"Salle de réception", status:"confirmed"},
+  {id:5, name:"Ines",                category:"Illustratrice",             contact:"",email:"",note:"Illustratrice",      status:"confirmed"},
+  {id:6, name:"Larissa",             category:"Wedding Planner",           contact:"",email:"",note:"Wedding planner",    status:"confirmed"},
+  {id:7, name:"DJ",                  category:"Animation",                 contact:"",email:"",note:"",                  status:"confirmed"},
+  {id:8, name:"Animateur",           category:"Animation",                 contact:"",email:"",note:"",                  status:"confirmed"},
+  {id:9, name:"Gateau",              category:"Traiteur / Restauration",   contact:"",email:"",note:"",                  status:"confirmed"},
+  {id:10,name:"Happy days",          category:"Autre",                     contact:"",email:"",note:"Vaisselle",          status:"inprogress"},
 ];
 
 /* ─── Shared styles ─────────────────────────────────────── */
@@ -396,8 +401,8 @@ function ProvidersTab({providers,setProviders,canEdit}){
   const [editP,setEditP]=useState(null);
   const blank={name:"",category:"Traiteur / Restauration",contact:"",email:"",note:"",status:"pending"};
   const [form,setForm]=useState(blank);
-  const cats=["Traiteur / Restauration","Photographe / Vidéaste","Fleuriste / Décoration","Lieu / Salle de réception","Illustratrice","Autre"];
-  const catIcon={"Traiteur / Restauration":"🍽","Photographe / Vidéaste":"📷","Fleuriste / Décoration":"🌸","Lieu / Salle de réception":"🏰","Illustratrice":"🎨","Autre":"✨"};
+  const cats=["Traiteur / Restauration","Photographe / Vidéaste","Fleuriste / Décoration","Lieu / Salle de réception","Illustratrice","Wedding Planner","Animation","Autre"];
+  const catIcon={"Traiteur / Restauration":"🍽","Photographe / Vidéaste":"📷","Fleuriste / Décoration":"🌸","Lieu / Salle de réception":"🏰","Illustratrice":"🎨","Wedding Planner":"💼","Animation":"🎵","Autre":"✨"};
 
   const openNew=()=>{if(!canEdit)return;setEditP(null);setForm(blank);setShowModal(true);};
   const openEdit=(p)=>{if(!canEdit)return;setEditP(p);setForm({...p});setShowModal(true);};
@@ -793,6 +798,7 @@ function App(){
   const [providers,setProviders]=useState(initProviders);
   const [rooms,setRooms]=useState(initRooms);
   const [guests,setGuests]=useState(()=>lsLoad("w-guests4")||initGuests);
+  const [tables,setTables]=useState(()=>lsLoad("w-tables4")||[]);
   const [loaded,setLoaded]=useState(false);
 
   useEffect(()=>{
@@ -814,6 +820,7 @@ function App(){
     {id:"rooms",   label:"🏠 Chambres"},
     ...(canSeeProviders?[{id:"providers",label:"🤝 Prestataires"}]:[]),
     ...(canEditTasks?[{id:"guests",label:"👥 Personnes"}]:[]),
+    ...(canEditTasks?[{id:"seating",label:"🪑 Plan de table"}]:[]),
   ];
 
   // Role badge label
@@ -882,6 +889,7 @@ function App(){
         {tab==="rooms"&&<RoomsTab rooms={rooms} setRooms={setRooms} guests={guests} canEdit={canEditRooms}/>}
         {tab==="providers"&&canSeeProviders&&<ProvidersTab providers={providers} setProviders={setProviders} canEdit={canEditProviders}/>}
         {tab==="guests"&&canEditTasks&&<GuestsTab guests={guests} setGuests={setGuests}/>}
+        {tab==="seating"&&canEditTasks&&<SeatingTab tables={tables} setTables={setTables} guests={guests}/>}
       </div>
     </div>
   );
