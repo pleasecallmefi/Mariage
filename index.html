@@ -876,11 +876,19 @@ function App(){
 
       {/* Tabs */}
       <div style={{display:"flex",borderBottom:"2px solid #f0e4dc",background:"white",padding:"0 0.5rem",overflowX:"auto"}}>
-        {tabs.map(({id,label})=>(
-          <button key={id} onClick={()=>setTab(id)} style={{padding:"0.9rem 1rem",background:"none",border:"none",cursor:"pointer",borderBottom:tab===id?"2.5px solid #c4755a":"2.5px solid transparent",marginBottom:"-2px",fontFamily:"'Lora',serif",fontSize:"0.85rem",color:tab===id?"#c4755a":"#8b6355",fontWeight:tab===id?"600":"400",transition:"all 0.2s",whiteSpace:"nowrap"}}>
-            {label}
-          </button>
-        ))}
+        {tabs.map(({id,label})=>{
+          if(id==="seating") return (
+            <a key={id} href="https://pleasecallmefi.github.io/plandetable/" target="_blank" rel="noopener noreferrer"
+              style={{padding:"0.9rem 1rem",background:"none",border:"none",cursor:"pointer",borderBottom:"2.5px solid transparent",marginBottom:"-2px",fontFamily:"'Lora',serif",fontSize:"0.85rem",color:"#8b6355",fontWeight:"400",transition:"all 0.2s",whiteSpace:"nowrap",textDecoration:"none",display:"flex",alignItems:"center",gap:"0.3rem"}}>
+              {label} <span style={{fontSize:"0.65rem",opacity:0.6}}>↗</span>
+            </a>
+          );
+          return (
+            <button key={id} onClick={()=>setTab(id)} style={{padding:"0.9rem 1rem",background:"none",border:"none",cursor:"pointer",borderBottom:tab===id?"2.5px solid #c4755a":"2.5px solid transparent",marginBottom:"-2px",fontFamily:"'Lora',serif",fontSize:"0.85rem",color:tab===id?"#c4755a":"#8b6355",fontWeight:tab===id?"600":"400",transition:"all 0.2s",whiteSpace:"nowrap"}}>
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Content */}
