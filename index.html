@@ -127,12 +127,39 @@ const initRooms=[
 ];
 
 const initTasks=[
+  // Veille — 14 juillet
   {id:1,title:"Arrivée des invités",assignee:"Anthony",category:"Organisation",status:"todo",note:"",date:"2026-07-14",startTime:"15:00",endTime:"18:00",location:"Entrée du domaine"},
   {id:2,title:"Dîner de répétition",assignee:"Michèle",category:"Traiteur",status:"todo",note:"",date:"2026-07-14",startTime:"19:30",endTime:"22:30",location:"Salle principale"},
-  {id:3,title:"Préparatifs mariée",assignee:"Charlotte",category:"Organisation",status:"todo",note:"",date:"2026-07-15",startTime:"09:00",endTime:"12:00",location:"Suite du Lac"},
-  {id:4,title:"Cérémonie",assignee:"Anthony",category:"Lieu",status:"todo",note:"",date:"2026-07-15",startTime:"14:00",endTime:"15:30",location:"Chapelle"},
-  {id:5,title:"Cocktail",assignee:"Hayara",category:"Décoration",status:"todo",note:"Décoration florale",date:"2026-07-15",startTime:"15:30",endTime:"18:00",location:"Terrasse"},
-  {id:6,title:"Dîner & Soirée",assignee:"Michèle",category:"Traiteur",status:"todo",note:"",date:"2026-07-15",startTime:"19:00",endTime:"23:59",location:"Salle de réception"},
+  // Jour J — matin
+  {id:3,title:"Préparatifs mariée",assignee:"Charlotte",category:"Organisation",status:"todo",note:"",date:"2026-07-15",startTime:"09:00",endTime:"12:30",location:"Suite du Lac"},
+  {id:4,title:"Installation à l'église",assignee:"Maxime",category:"Décoration",status:"todo",note:"Panneau bienvenue, panneau No Phone, places réservées parents/grands-parents/témoins",date:"2026-07-15",startTime:"09:00",endTime:"10:00",location:"Église"},
+  {id:5,title:"Arrivée prestataires au château",assignee:"Larissa",category:"Organisation",status:"todo",note:"Larissa accueille tous les prestataires pendant la cérémonie. Demander heure d'arrivée à chacun.",date:"2026-07-15",startTime:"09:00",endTime:"10:00",location:"Château Erigoye"},
+  {id:6,title:"Retour à l'église — finalisation",assignee:"Maxime",category:"Organisation",status:"todo",note:"Tout le monde revient se préparer puis retour à l'église",date:"2026-07-15",startTime:"13:00",endTime:"13:30",location:"Église"},
+  // Cérémonie
+  {id:7,title:"Accueil des invités à l'église",assignee:"Larissa",category:"Organisation",status:"todo",note:"Distribution des bâtons avec ruban. Placement bridal party : 8 couples en alternance gauche/droite.",date:"2026-07-15",startTime:"13:30",endTime:"14:30",location:"Église"},
+  {id:8,title:"Cérémonie religieuse — Messe",assignee:"Père Gaston",category:"Lieu",status:"todo",note:"Annoncer en début de messe que les photos se feront au château. Premiers rangs sortent en premier. NE PAS OUBLIER : Salohy → alliances / Lara → bouquet de Marie",date:"2026-07-15",startTime:"14:30",endTime:"16:15",location:"Église"},
+  {id:9,title:"Sortie & photo devant l'église",assignee:"Maxime",category:"Photographe",status:"todo",note:"Invités attendent devant l'église. Maxime & Safidy : photo avec Père Gaston + discussion Frank/Jiska. Fermeture église avec Mamy Seheno et Larissa.",date:"2026-07-15",startTime:"16:15",endTime:"16:30",location:"Église"},
+  {id:10,title:"Cortège vers le Château Erigoye",assignee:"Toky",category:"Organisation",status:"todo",note:"Toky & Tinah bloquent la route → grand parking. Poun & Phrad ouvrent le cortège. Rasanda/Toavina/Miangaly/Nante partent directement au château.",date:"2026-07-15",startTime:"16:15",endTime:"16:30",location:"Trajet"},
+  // Vin d'honneur
+  {id:11,title:"Vin d'honneur — accueil invités",assignee:"Rasanda",category:"Organisation",status:"todo",note:"Cocktail + eau citron glaçons + soda. Nanah & Ilo orchestrent l'arrivée (aidés Salohy & Célin). Top de Nante → Larissa → Maxime & Safidy.",date:"2026-07-15",startTime:"16:30",endTime:"19:00",location:"Château Erigoye — terrasse"},
+  {id:12,title:"Mot d'accueil + prière",assignee:"Père Gaston",category:"Organisation",status:"todo",note:"Remerciements. Présentation livres d'or (Bible illustrée, livre audio, boîte aux lettres) et illustratrice. Prière du Père Gaston pour le repas.",date:"2026-07-15",startTime:"16:30",endTime:"16:45",location:"Château Erigoye"},
+  {id:13,title:"Photos de couple",assignee:"OHA",category:"Photographe",status:"todo",note:"15 min. Ne pas oublier de passer en salle.",date:"2026-07-15",startTime:"17:00",endTime:"17:15",location:"Château Erigoye"},
+  {id:14,title:"Photos bridal party",assignee:"OHA",category:"Photographe",status:"todo",note:"Environ 30 min.",date:"2026-07-15",startTime:"17:45",endTime:"18:15",location:"Château Erigoye"},
+  {id:15,title:"Installation boissons en salle",assignee:"Alexandra",category:"Organisation",status:"todo",note:"1 eau plate + 1 soda + 1 bouteille de vin par table de 10.",date:"2026-07-15",startTime:"17:00",endTime:"18:00",location:"Salle de réception"},
+  {id:16,title:"Photos de groupe avec les invités",assignee:"OHA",category:"Photographe",status:"todo",note:"QR code groupes + ordre. Animateur appelle groupe par groupe. 1 bonne photo par groupe — refuser photos supplémentaires. Les invités rejoignent ensuite la salle.",date:"2026-07-15",startTime:"18:30",endTime:"19:00",location:"Château Erigoye"},
+  // Repas
+  {id:17,title:"Danse d'entrée des mariés",assignee:"Maxime",category:"Animation",status:"todo",note:"Annonce animateur. Fin musique → danseurs reprennent place → annonce début repas.",date:"2026-07-15",startTime:"19:00",endTime:"19:15",location:"Salle de réception"},
+  {id:18,title:"Service entrée (Antipasti)",assignee:"Pastoune",category:"Traiteur",status:"todo",note:"Service à table : 2 personnes de La Pastoune + demoiselles d'honneur. À confirmer : nombre de plats en entrée.",date:"2026-07-15",startTime:"19:15",endTime:"20:00",location:"Salle de réception"},
+  {id:19,title:"Plat principal — Food truck + Hen'omby Titra",assignee:"Pastoune",category:"Traiteur",status:"todo",note:"Annonce animateur : food truck ouvert. Invités vont chercher pâtes avec leur assiette. En parallèle : réchauffe-plats avec Hen'omby titra + riz + Achard (préparé la veille). Mêmes assiettes.",date:"2026-07-15",startTime:"20:00",endTime:"21:15",location:"Salle de réception"},
+  {id:20,title:"Débarrassage entrée",assignee:"Tsiro",category:"Organisation",status:"todo",note:"Pendant le plat principal.",date:"2026-07-15",startTime:"20:00",endTime:"20:30",location:"Salle de réception"},
+  {id:21,title:"Débarrassage assiettes du plat",assignee:"Salohy",category:"Organisation",status:"todo",note:"",date:"2026-07-15",startTime:"21:00",endTime:"21:15",location:"Salle de réception"},
+  {id:22,title:"Première danse & Afindrafindrao",assignee:"Maxime",category:"Animation",status:"todo",note:"Danse Safidy & Maxime → danse traditionnelle malgache Afindrafindrao → dancefloor.",date:"2026-07-15",startTime:"21:15",endTime:"21:30",location:"Salle de réception"},
+  {id:23,title:"Arrivée prestataire gâteau + 2ème tenue",assignee:"Larissa",category:"Traiteur",status:"todo",note:"Géré par Larissa. Maxime & Safidy se changent pour 2ème tenue.",date:"2026-07-15",startTime:"21:30",endTime:"21:45",location:"Château Erigoye"},
+  {id:24,title:"Cérémonie du gâteau",assignee:"Miangaly",category:"Traiteur",status:"todo",note:"Musique : Sugar – Maroon 5. Table nappe toile de Jouy : 2 plats tiramisu + 1 tarte + coupes tiramisu. Bougies → soufflage. Maxime & Safidy coupent la tarte. Desserts en libre-service. Miangaly : tiramisu spéculoos / Tsiro : tiramisu fraise / Poun : tarte.",date:"2026-07-15",startTime:"21:30",endTime:"22:15",location:"Salle de réception"},
+  // Soirée
+  {id:25,title:"Piste de danse",assignee:"DJ",category:"Animation",status:"todo",note:"Rythme musical décidé par les animateurs.",date:"2026-07-15",startTime:"22:15",endTime:"23:15",location:"Salle de réception"},
+  {id:26,title:"Midnight snack",assignee:"Alexandra",category:"Organisation",status:"todo",note:"Sur table du gâteau : distributeur eau chaude, machine café, tasses, thé sachets, cup noodles, chips dans paniers osier. Couverts + verres plastique au bar.",date:"2026-07-16",startTime:"00:00",endTime:"01:00",location:"Salle de réception"},
+  {id:27,title:"Rangement couverts de location",assignee:"Alexandra",category:"Organisation",status:"todo",note:"Au plus tard à minuit.",date:"2026-07-16",startTime:"00:00",endTime:"01:00",location:"Salle de réception"},
 ];
 
 const initProviders=[
