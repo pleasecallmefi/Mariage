@@ -844,10 +844,336 @@ function GuestsTab({guests,setGuests}){
   );
 }
 
+/* ══════════════════════════════════════════════════════════
+   PROGRAMME — Déroulé de la journée
+══════════════════════════════════════════════════════════ */
+const INIT_SECTIONS=[
+  {
+    id:"prep",section:"church",dot:"#6a9a58",label:"Préparatifs",title:"Matin — Installation & préparation",time:"9h00 – 12h30",
+    events:[
+      {time:"9h00",title:"Installation à l'église",desc:"Décoration et installation par Maxime et les concernés. Panneau de bienvenue tableau + panneau « No phone ». Réservations de places : parents, grands-parents, témoins.",persons:[]},
+      {time:"9h–10h",title:"Arrivée des prestataires au château",desc:"Larissa accueille tous les prestataires sur place pendant la cérémonie.",tags:[{t:"responsable",l:"Larissa"},{t:"prestataire",l:"Prestataires"}],persons:["Larissa"]},
+      {time:"12h30",title:"Fin des préparatifs — tout le monde se prépare",desc:"Retour à l'église à 13h–13h30 pour finaliser et accueillir les invités.",persons:[]},
+    ]
+  },
+  {
+    id:"church",section:"church",dot:"#6a9a58",label:"Cérémonie religieuse",title:"Église — Messe & cortège",time:"13h30 – ~16h15",
+    events:[
+      {time:"13h–13h30",title:"Accueil des invités à l'église",desc:"Distribution des bâtons avec ruban par Larissa. Placement bridal party : 8 couples en alternance gauche/droite sur les premières rangées.",tags:[{t:"responsable",l:"Larissa"}],persons:["Larissa"]},
+      {time:"⚠",title:"À ne pas oublier",tags:[{t:"alert",l:"Salohy : alliances"},{t:"alert",l:"Lara : bouquet de Marie"}],desc:"Musiques sur clé USB · Livret de messe + programme en fin de livret",persons:["Salohy","Lara"]},
+      {time:"14h30",title:"Début de la messe — Père Gaston",desc:"Annoncer en début de messe que les photos se feront au château. Les premiers rangs sortent en premier.",persons:["Père Gaston"]},
+      {time:"Fin messe",title:"Sortie & photo devant l'église",desc:"Les invités attendent devant l'église. Maxime & Safidy restent pour parler à Frank/Jiska + photo avec le Père Gaston. Fermeture de l'église avec Mamy Seheno et Larissa.",persons:["Larissa"]},
+      {time:"Cortège",title:"Cortège vers le Château Erigoye",desc:"Toky & Tinah bloquent la route pour orienter vers le grand parking. Voiture avec Poun & Phrad ouvre le cortège. Rasanda, Toavina, Miangaly, Nante partent directement au château. Nanah & Ilo accueillent les invités à l'arrivée (aidés de Salohy & Célin).",tags:[{t:"responsable",l:"Nanah & Ilo"}],persons:["Toky","Tinah","Poun","Phrad","Rasanda","Toavina","Miangaly","Nante","Nanah","Ilo","Salohy","Célin"]},
+    ]
+  },
+  {
+    id:"vh",section:"chateau",dot:"#7a6aaa",label:"Vin d'honneur",title:"Château Erigoye — Accueil & cocktail",time:"~16h30 – 19h",
+    events:[
+      {time:"~16h30",title:"Arrivée des invités & boisson de bienvenue",desc:"Cocktail + eau avec citron & glaçons + soda devant le château. Panneau photocall côté terrasse.",tags:[{t:"responsable",l:"Rasanda · Toavina · Miangaly · Nante"}],persons:["Rasanda","Toavina","Miangaly","Nante"]},
+      {time:"~16h30",title:"Arrivée de Maxime & Safidy",desc:"Top de Nante → Larissa → Maxime & Safidy. Annonce animateur pour rejoindre le vin d'honneur.",persons:["Nante","Larissa"]},
+      {time:"Accueil",title:"Mot d'accueil de Maxime & Safidy",desc:"Remerciements · Présentation des livres d'or (Bible illustrée, livre audio, boîte aux lettres) · Présentation de l'illustratrice.",persons:[]},
+      {time:"Prière",title:"Prière du Père Gaston pour le repas",desc:"Début du vin d'honneur avec musique d'animation. Maxime & Safidy se servent en premier.",persons:["Père Gaston"]},
+      {time:"17h00",title:"Photos de couple",desc:"15 min — ne pas oublier de passer en salle.",tags:[{t:"prestataire",l:"Photographe"},{t:"alert",l:"Ne pas oublier en salle"}],persons:[]},
+      {time:"17h45",title:"Photos bridal party",desc:"Environ 30 min.",tags:[{t:"prestataire",l:"Photographe"}],persons:[]},
+      {time:"Pendant VH",title:"Installation des boissons en salle",desc:"1 eau plate + 1 soda + 1 bouteille de vin par table de 10.",tags:[{t:"responsable",l:"Alexandra · Anteh · Antoine · Tsiro"}],persons:["Alexandra","Anteh","Antoine","Tsiro"]},
+      {time:"18h30",title:"Photos de groupe avec les invités",desc:"QR code pour les groupes + ordre. Animateur appelle groupe par groupe. Le photographe décide du passage suivant (1 bonne photo par groupe, pas de photos supplémentaires).",tags:[{t:"prestataire",l:"Animateurs · Photographe"}],persons:[]},
+    ]
+  },
+  {
+    id:"repas",section:"repas",dot:"#c07850",label:"Repas",title:"Dîner — Service & animations",time:"19h – 21h30",
+    notes:[{title:"Disposition salle (gauche → droite face au mur)",items:["Table tiramisu · Bar à cake · Bar boisson · Food truck","Coupes de tiramisu gardées au frigo pour le bridal party","Grosse cuillère pour tiramisus + couteau pour couper tarte : à acheter"]}],
+    events:[
+      {time:"19h00",title:"Danse d'entrée des mariés",desc:"Annonce par l'animateur. Fin de la musique → les danseurs reprennent leur place → annonce du début du repas.",persons:[]},
+      {time:"19h15",title:"Service de l'entrée (Antipasti)",desc:"Service à table par 2 personnes de La Pastoune + les demoiselles d'honneur.",tags:[{t:"prestataire",l:"La Pastoune"},{t:"todo",l:"À confirmer : nb plats entrée"}],persons:[]},
+      {time:"20h00",title:"Plat principal — Food truck + Hen'omby Titra",desc:"Annonce animateur : food truck ouvert (invités y vont avec leur assiette). En parallèle : réchauffe-plats avec Hen'omby titra + riz + Achard (préparé la veille). Mêmes assiettes que les pâtes.",persons:[]},
+      {time:"Pendant plat",title:"Débarrassage de l'entrée",tags:[{t:"responsable",l:"Tsiro"}],persons:["Tsiro"]},
+      {time:"Après plat",title:"Débarrassage des assiettes du plat",tags:[{t:"responsable",l:"Salohy"}],persons:["Salohy"]},
+      {time:"21h15",title:"Première danse des mariés & Afindrafindrao",desc:"Danse Safidy & Maxime → danse traditionnelle malgache Afindrafindrao → dancefloor.",persons:[]},
+      {time:"21h30",title:"Arrivée du prestataire gâteau & 2ème tenue",desc:"Géré par Larissa. Maxime & Safidy se changent pour leur 2ème tenue puis font leur apparition.",tags:[{t:"prestataire",l:"Pâtissier"},{t:"responsable",l:"Larissa"}],persons:["Larissa"]},
+      {time:"21h30",title:"Cérémonie du gâteau — Animation dessert",desc:"Musique : Sugar – Maroon 5. Table nappe toile de Jouy : 2 plats tiramisu + 1 tarte + coupes de tiramisu. Bougies → soufflage. Maxime & Safidy coupent la tarte. Desserts en libre-service.",tags:[{t:"responsable",l:"Miangaly : tiramisu spéculoos"},{t:"responsable",l:"Tsiro : tiramisu fraise"},{t:"responsable",l:"Poun : tarte"}],persons:["Miangaly","Tsiro","Poun"]},
+    ]
+  },
+  {
+    id:"soiree",section:"soiree",dot:"#4a8aaa",label:"Soirée & fin de nuit",title:"Fête & midnight snack",time:"22h15 – …",
+    events:[
+      {time:"22h15",title:"Piste de danse",desc:"Dancefloor jusqu'à 23h15. Rythme musical décidé par les animateurs. Desserts en libre-service (assiettes en inox). Table dehors pour les desserts mise en place.",persons:[]},
+      {time:"00h00",title:"Midnight snack",desc:"Sur la table du gâteau : distributeur d'eau chaude · machine à café · tasses · boîte de thé en sachets · cup noodles · chips dans paniers en osier. Couverts & verres en plastique mis à disposition au bar.",persons:[]},
+      {time:"00h00",title:"Rangement des couverts de location",tags:[{t:"responsable",l:"Alexandra (responsable)"}],persons:["Alexandra"]},
+    ]
+  },
+  {
+    id:"resp",section:"all",dot:"#b89a6e",label:"Équipe",title:"Responsables & rôles clés",time:"",
+    responsables:[
+      {name:"Larissa",role:"Wedding planner · coordination générale"},
+      {name:"Salohy",role:"Alliances · débarrassage plat"},
+      {name:"Lara",role:"Bouquet de Marie à l'église"},
+      {name:"Tsiro",role:"Débarrassage entrée · tiramisu fraise · boissons salle"},
+      {name:"Miangaly",role:"Tiramisu spéculoos · dessert"},
+      {name:"Poun",role:"Tarte · cortège voiture"},
+      {name:"Nanah & Ilo",role:"Accueil invités au château"},
+      {name:"Rasanda · Toavina · Nante",role:"Vin d'honneur"},
+      {name:"Alexandra",role:"Boissons salle · rangement couverts minuit"},
+      {name:"Toky & Tinah",role:"Cortège : orientation parking"},
+      {name:"Salohy & Célin",role:"Aide accueil château"},
+    ]
+  },
+  {
+    id:"todo",section:"all",dot:"#6aaa70",label:"Checklist",title:"Achats & points à confirmer",time:"",
+    checklist:{
+      achats:["Alcool fort + boissons softs","Palettes de citrons (décorations + distributeurs)","Gobelets carton (boisson de bienvenue)","Grosse cuillère pour tiramisus + couteau pour tarte"],
+      confirmer:["La Pastoune : nombre de plats en entrée + brief service","Coiffeuse & maquilleuse : horaire de préparation du matin","Animateurs : accord pour les annonces spécifiques du programme","Tous prestataires : heure d'arrivée le matin (si possible)","Envoyer planning + contrat/devis à Larissa","Donner contacts témoins & famille proche à Larissa (surprises/discours)","Playlist finalisée + programme DJ/animateurs","Place d'Inès : en salle ou devant la salle (à définir le jour J)"],
+    }
+  },
+];
+
+function ProgrammeTab({canEdit,guests}){
+  const [collapsed,setCollapsed]=useState({});
+  const [filterSection,setFilterSection]=useState("all");
+  const [filterPerson,setFilterPerson]=useState("all");
+  const [sections,setSections]=useState(INIT_SECTIONS);
+  const [editModal,setEditModal]=useState(null); // {secId, evIdx} or null for new
+  const [editSecModal,setEditSecModal]=useState(null); // section being edited
+  const [showNewEvModal,setShowNewEvModal]=useState(null); // secId for new event
+  const blankEv={time:"",title:"",desc:"",tags:[],persons:[]};
+  const [evForm,setEvForm]=useState(blankEv);
+  const [secForm,setSecForm]=useState({label:"",title:"",time:"",section:"church",dot:"#6a9a58"});
+
+  const toggle=(id)=>setCollapsed(p=>({...p,[id]:!p[id]}));
+
+  const TAG={
+    prestataire:{bg:"#f0ebe0",color:"#8a6a40",border:"1px solid #ddd0b0"},
+    responsable: {bg:"#e8eef5",color:"#456080",border:"1px solid #c0d0e0"},
+    alert:       {bg:"#fceaea",color:"#903030",border:"1px solid #f0c0c0"},
+    todo:        {bg:"#e8f0e4",color:"#406030",border:"1px solid #b8d8a8"},
+  };
+  const tagStyle=(type)=>({display:"inline-block",fontSize:"10px",fontWeight:"600",letterSpacing:"0.06em",textTransform:"uppercase",padding:"2px 8px",borderRadius:"10px",marginRight:"4px",marginBottom:"4px",...(TAG[type]||TAG.todo)});
+
+  const sectionFilters=[
+    {id:"all",label:"Tout afficher"},
+    {id:"church",label:"Cérémonie"},
+    {id:"chateau",label:"Vin d'honneur"},
+    {id:"repas",label:"Repas"},
+    {id:"soiree",label:"Soirée"},
+  ];
+
+  // All unique person names from guests list + persons already in events
+  const allPersons=useMemo(()=>{
+    const fromGuests=guests.map(g=>g.name);
+    const fromEvents=sections.flatMap(s=>(s.events||[]).flatMap(e=>e.persons||[]));
+    return [...new Set([...fromGuests,...fromEvents])].sort();
+  },[guests,sections]);
+
+  const visible=useMemo(()=>{
+    return sections.filter(sec=>{
+      const sectionOk=filterSection==="all"||sec.section===filterSection||sec.section==="all";
+      if(!sectionOk)return false;
+      if(filterPerson==="all")return true;
+      // show section if any event has this person
+      if(sec.events){
+        return sec.events.some(ev=>(ev.persons||[]).includes(filterPerson));
+      }
+      return true;
+    });
+  },[sections,filterSection,filterPerson]);
+
+  // Determine which events to show when person filter active
+  const visibleEvents=(sec)=>{
+    if(!sec.events)return [];
+    if(filterPerson==="all")return sec.events;
+    return sec.events.filter(ev=>(ev.persons||[]).includes(filterPerson));
+  };
+
+  // Admin: save event
+  const saveEvent=()=>{
+    if(!evForm.title.trim())return;
+    setSections(prev=>prev.map(sec=>{
+      if(sec.id!==editModal.secId&&sec.id!==showNewEvModal)return sec;
+      const events=[...(sec.events||[])];
+      if(editModal&&editModal.evIdx!=null){
+        events[editModal.evIdx]={...evForm};
+      } else {
+        events.push({...evForm,persons:evForm.persons||[]});
+      }
+      return {...sec,events};
+    }));
+    setEditModal(null);setShowNewEvModal(null);setEvForm(blankEv);
+  };
+  const deleteEvent=(secId,evIdx)=>{
+    setSections(prev=>prev.map(sec=>{
+      if(sec.id!==secId)return sec;
+      const events=sec.events.filter((_,i)=>i!==evIdx);
+      return {...sec,events};
+    }));
+  };
+  const openEditEv=(secId,evIdx)=>{
+    const sec=sections.find(s=>s.id===secId);
+    setEvForm({...blankEv,...sec.events[evIdx],persons:sec.events[evIdx].persons||[]});
+    setEditModal({secId,evIdx});
+  };
+
+  const sectionStyle={marginBottom:"1.5rem",borderRadius:"12px",overflow:"hidden",border:"1.5px solid #f0e4dc",background:"white"};
+  const headerStyle={padding:"0.9rem 1.1rem",display:"flex",alignItems:"center",gap:"10px",cursor:"pointer",background:"white"};
+  const bodyStyle={borderTop:"1px solid #f0e4dc"};
+  const timeStyle={fontSize:"11px",fontWeight:"600",color:"#b89a6e",minWidth:"56px",paddingTop:"2px",fontFamily:"'Lora',serif"};
+  const eventTitleStyle={fontSize:"0.88rem",fontWeight:"600",color:"#2c1810",marginBottom:"2px",fontFamily:"'Playfair Display',serif"};
+  const eventDescStyle={fontSize:"0.78rem",color:"#8b6355",lineHeight:"1.55"};
+
+  return (
+    <div style={{fontFamily:"'Lora',serif"}}>
+      {/* Filters row */}
+      <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"1.5rem",alignItems:"center"}}>
+        <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
+          {sectionFilters.map(f=>(
+            <button key={f.id} onClick={()=>setFilterSection(f.id)}
+              style={{fontSize:"11px",fontWeight:"400",letterSpacing:"0.07em",padding:"5px 14px",borderRadius:"20px",border:`1px solid ${filterSection===f.id?"#c4755a":"#f0e4dc"}`,background:filterSection===f.id?"#f5e8e0":"transparent",color:filterSection===f.id?"#c4755a":"#8b6355",cursor:"pointer",fontFamily:"'Lora',serif"}}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <select value={filterPerson} onChange={e=>setFilterPerson(e.target.value)}
+          style={{...iStyle,width:"auto",padding:"0.32rem 0.75rem",fontSize:"0.8rem",marginLeft:"auto"}}>
+          <option value="all">Toutes les personnes</option>
+          {allPersons.map(p=><option key={p} value={p}>{p}</option>)}
+        </select>
+      </div>
+
+      {visible.map(sec=>{
+        const evs=visibleEvents(sec);
+        return (
+          <div key={sec.id} style={sectionStyle}>
+            <div style={headerStyle} onClick={()=>toggle(sec.id)}>
+              <div style={{width:"9px",height:"9px",borderRadius:"50%",background:sec.dot,flexShrink:0}}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:"10px",fontWeight:"700",letterSpacing:"0.14em",textTransform:"uppercase",color:"#b89a8e",marginBottom:"1px"}}>{sec.label}</div>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.05rem",fontWeight:"600",color:"#2c1810"}}>{sec.title}</div>
+              </div>
+              {sec.time&&<div style={{fontSize:"11px",color:"#b89a8e",whiteSpace:"nowrap"}}>{sec.time}</div>}
+              {canEdit&&sec.events&&<button onClick={e=>{e.stopPropagation();setEvForm(blankEv);setShowNewEvModal(sec.id);}} style={{background:"none",border:"1px solid #f0e4dc",borderRadius:"6px",cursor:"pointer",color:"#c4755a",fontSize:"0.72rem",padding:"2px 8px",marginLeft:"6px",fontFamily:"'Lora',serif"}}>+ Étape</button>}
+              <div style={{color:"#b89a8e",fontSize:"13px",transition:"transform 0.2s",transform:collapsed[sec.id]?"rotate(-90deg)":"rotate(0deg)",marginLeft:"4px"}}>▾</div>
+            </div>
+
+            {!collapsed[sec.id]&&(
+              <div style={bodyStyle}>
+                {sec.events&&evs.length>0&&(
+                  <div style={{padding:"0.8rem 1.1rem"}}>
+                    {evs.map((ev,i)=>{
+                      const realIdx=(sec.events||[]).indexOf(ev);
+                      return (
+                        <div key={i} style={{display:"flex",gap:"12px",alignItems:"flex-start",padding:"0.5rem 0",borderBottom:i<evs.length-1?"1px solid #f5ece6":"none"}}>
+                          <div style={timeStyle}>{ev.time}</div>
+                          <div style={{flex:1}}>
+                            <div style={eventTitleStyle}>{ev.title}</div>
+                            {ev.tags&&ev.tags.length>0&&<div style={{marginTop:"3px",marginBottom:"3px"}}>{ev.tags.map((tg,j)=><span key={j} style={tagStyle(tg.t)}>{tg.l}</span>)}</div>}
+                            {ev.desc&&<div style={eventDescStyle}>{ev.desc}</div>}
+                          </div>
+                          {canEdit&&(
+                            <div style={{display:"flex",gap:"2px",flexShrink:0}}>
+                              <button onClick={()=>openEditEv(sec.id,realIdx)} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.82rem",padding:"2px"}}>✏️</button>
+                              <button onClick={()=>deleteEvent(sec.id,realIdx)} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.82rem",padding:"2px"}}>🗑</button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {sec.events&&evs.length===0&&filterPerson!=="all"&&(
+                  <div style={{padding:"0.8rem 1.1rem",fontSize:"0.78rem",color:"#b89a8e",fontStyle:"italic"}}>Aucune étape pour cette personne dans cette section.</div>
+                )}
+                {sec.notes&&sec.notes.map((n,ni)=>(
+                  <div key={ni} style={{padding:"0.6rem 1.1rem 0.8rem",background:"#fdf8f4",borderTop:"1px solid #f0e4dc"}}>
+                    <div style={{fontSize:"10px",fontWeight:"700",letterSpacing:"0.1em",textTransform:"uppercase",color:"#b89a8e",marginBottom:"0.4rem"}}>{n.title}</div>
+                    {n.items.map((item,ii)=>(
+                      <div key={ii} style={{fontSize:"0.78rem",color:"#5a3a2a",lineHeight:"1.6",paddingLeft:"1rem",position:"relative"}}>
+                        <span style={{position:"absolute",left:0,color:"#b89a6e"}}>—</span>{item}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+                {sec.responsables&&(
+                  <div style={{padding:"0.8rem 1.1rem"}}>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:"7px"}}>
+                      {sec.responsables.map((r,ri)=>(
+                        <div key={ri} style={{background:"#fdf8f4",border:"1px solid #f0e4dc",borderRadius:"8px",padding:"7px 10px"}}>
+                          <div style={{fontSize:"0.82rem",fontWeight:"600",color:"#2c1810",fontFamily:"'Playfair Display',serif"}}>{r.name}</div>
+                          <div style={{fontSize:"0.72rem",color:"#8b6355"}}>{r.role}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {sec.checklist&&(
+                  <div>
+                    <div style={{padding:"0.6rem 1.1rem 0.8rem",background:"#fdf8f4"}}>
+                      <div style={{fontSize:"10px",fontWeight:"700",letterSpacing:"0.1em",textTransform:"uppercase",color:"#b89a8e",marginBottom:"0.4rem"}}>À acheter — lundi 13 juillet</div>
+                      {sec.checklist.achats.map((item,i)=>(
+                        <div key={i} style={{fontSize:"0.78rem",color:"#5a3a2a",lineHeight:"1.6",paddingLeft:"1rem",position:"relative"}}>
+                          <span style={{position:"absolute",left:0,color:"#b89a6e"}}>—</span>{item}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{padding:"0.6rem 1.1rem 0.8rem",background:"white",borderTop:"1px solid #f0e4dc"}}>
+                      <div style={{fontSize:"10px",fontWeight:"700",letterSpacing:"0.1em",textTransform:"uppercase",color:"#b89a8e",marginBottom:"0.4rem"}}>À confirmer avec les prestataires</div>
+                      {sec.checklist.confirmer.map((item,i)=>(
+                        <div key={i} style={{fontSize:"0.78rem",color:"#5a3a2a",lineHeight:"1.6",paddingLeft:"1rem",position:"relative"}}>
+                          <span style={{position:"absolute",left:0,color:"#b89a6e"}}>—</span>{item}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Legend */}
+      <div style={{display:"flex",gap:"12px",flexWrap:"wrap",justifyContent:"center",marginTop:"1rem",paddingTop:"1rem",borderTop:"1px solid #f0e4dc"}}>
+        {[["prestataire","Prestataire"],["responsable","Responsable"],["alert","Ne pas oublier"],["todo","À confirmer"]].map(([t,l])=>(
+          <span key={t} style={tagStyle(t)}>{l}</span>
+        ))}
+      </div>
+
+      {/* Edit/New event modal */}
+      {(editModal||showNewEvModal)&&(
+        <Modal title={editModal?"Modifier l'étape":"Nouvelle étape"} onClose={()=>{setEditModal(null);setShowNewEvModal(null);setEvForm(blankEv);}}>
+          <div style={{display:"flex",flexDirection:"column",gap:"0.9rem"}}>
+            <div><label style={lStyle}>Heure / Moment</label><input style={iStyle} value={evForm.time} onChange={e=>setEvForm({...evForm,time:e.target.value})} placeholder="Ex: 19h00, Pendant plat…"/></div>
+            <div><label style={lStyle}>Titre *</label><input style={iStyle} value={evForm.title} onChange={e=>setEvForm({...evForm,title:e.target.value})} placeholder="Intitulé de l'étape…"/></div>
+            <div><label style={lStyle}>Description</label><textarea style={{...iStyle,height:"72px",resize:"vertical"}} value={evForm.desc||""} onChange={e=>setEvForm({...evForm,desc:e.target.value})}/></div>
+            <div>
+              <label style={lStyle}>Personnes concernées</label>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"6px",marginTop:"4px",padding:"8px",background:"#fdf8f4",borderRadius:"8px",border:"1.5px solid #d9c9bf",maxHeight:"140px",overflowY:"auto"}}>
+                {allPersons.map(p=>{
+                  const sel=(evForm.persons||[]).includes(p);
+                  return (
+                    <button key={p} onClick={()=>{
+                      const cur=evForm.persons||[];
+                      setEvForm({...evForm,persons:sel?cur.filter(x=>x!==p):[...cur,p]});
+                    }} style={{fontSize:"11px",padding:"3px 10px",borderRadius:"12px",border:`1px solid ${sel?"#c4755a":"#d9c9bf"}`,background:sel?"#f5e8e0":"white",color:sel?"#c4755a":"#8b6355",cursor:"pointer",fontFamily:"'Lora',serif"}}>
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div style={{display:"flex",gap:"0.7rem",justifyContent:"flex-end"}}>
+              <button style={btnS} onClick={()=>{setEditModal(null);setShowNewEvModal(null);setEvForm(blankEv);}}>Annuler</button>
+              <button style={btnP} onClick={saveEvent}>Enregistrer</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+
 function App(){
   const [role,setRole]=useState("guest");           // guest | weddingPlanner | admin
   const [loginTarget,setLoginTarget]=useState(null); // which role we're trying to unlock
-  const [tab,setTab]=useState("tasks");
+  const [tab,setTab]=useState("programme");
   const [tasks,setTasks]=useState(initTasks);
   const [providers,setProviders]=useState(initProviders);
   const [rooms,setRooms]=useState(initRooms);
@@ -876,7 +1202,7 @@ function App(){
 
   // Tab list depends on role
   const tabs=[
-    {id:"tasks",   label:"🗂 Planning"},
+    {id:"programme",label:"💒 Programme"},
     {id:"rooms",   label:"🏠 Chambres"},
     ...(canSeeProviders?[{id:"providers",label:"🤝 Prestataires"}]:[]),
     ...(canEditTasks?[{id:"guests",label:"👥 Personnes"}]:[]),
@@ -953,7 +1279,7 @@ function App(){
 
       {/* Content */}
       <div style={{padding:"1.4rem",maxWidth:"960px",margin:"0 auto"}}>
-        {tab==="tasks"&&<TasksTab tasks={tasks} setTasks={setTasks} guests={guests} canEdit={canEditTasks}/>}
+        {tab==="programme"&&<ProgrammeTab canEdit={role==="admin"} guests={guests}/>}
         {tab==="rooms"&&<RoomsTab rooms={rooms} setRooms={setRooms} guests={guests} canEdit={canEditRooms}/>}
         {tab==="providers"&&canSeeProviders&&<ProvidersTab providers={providers} setProviders={setProviders} canEdit={canEditProviders}/>}
         {tab==="guests"&&canEditTasks&&<GuestsTab guests={guests} setGuests={setGuests}/>}
