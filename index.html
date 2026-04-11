@@ -848,20 +848,102 @@ function GuestsTab({guests,setGuests}){
    PROGRAMME — Déroulé de la journée
 ══════════════════════════════════════════════════════════ */
 const INIT_SECTIONS=[
-  {id:"prep",section:"church",dot:"#6a9a58",label:"Préparatifs",title:"Matin — Installation & préparation",time:"9h00 – 12h30",events:[]},
-  {id:"church",section:"church",dot:"#6a9a58",label:"Cérémonie religieuse",title:"Église — Messe & cortège",time:"13h30 – ~16h15",events:[]},
-  {id:"vh",section:"chateau",dot:"#7a6aaa",label:"Vin d'honneur",title:"Château Erigoye — Accueil & cocktail",time:"~16h30 – 19h",events:[]},
-  {id:"repas",section:"repas",dot:"#c07850",label:"Repas",title:"Dîner — Service & animations",time:"19h – 21h30",notes:[{title:"Disposition salle (gauche → droite face au mur)",items:[]}],events:[]},
-  {id:"soiree",section:"soiree",dot:"#4a8aaa",label:"Soirée & fin de nuit",title:"Fête & midnight snack",time:"22h15 – …",events:[]},
-  {id:"resp",section:"all",dot:"#b89a6e",label:"Équipe",title:"Responsables & rôles clés",time:"",responsables:[]},
-  {id:"todo",section:"all",dot:"#6aaa70",label:"Checklist",title:"Achats & points à confirmer",time:"",checklist:{achats:[],confirmer:[]}},
+  {
+    id:"prep",section:"church",dot:"#6a9a58",label:"Préparatifs",title:"Matin — Installation & préparation",time:"9h00 – 14h20",
+    events:[
+      {time:"9h00–10h00",title:"Décoration et préparation à l'église",desc:"Installer les rubans avec ficelle, instruments, panneau No Phone, tableau avec chevalet.",tags:[{t:"responsable",l:"Mamy · Maxime · Antoine · Anthony"}],persons:["Mamy","Maxime","Antoine","Anthony"]},
+      {time:"10h30",title:"Coiffeuse — Safidy",desc:"Suite Nuptiale.",tags:[{t:"responsable",l:"Safidy"}],persons:["Safidy"]},
+      {time:"11h45–13h00",title:"Maquilleuse — Safidy",desc:"Suite Nuptiale.",tags:[{t:"responsable",l:"Safidy"}],persons:["Safidy"]},
+      {time:"13h00",title:"Repas midi — Safidy",desc:"Suite Nuptiale. Prévoir SUSHIS 🍣",tags:[{t:"responsable",l:"Safidy"}],persons:["Safidy"]},
+      {time:"13h30",title:"Habillage — Safidy",desc:"Suite Nuptiale.",tags:[{t:"responsable",l:"Safidy"}],persons:["Safidy"]},
+      {time:"13h30",title:"Dernière installation à l'église",desc:"Finaliser les installations. Pose des livrets de messe sur les bancs. Places réservées : 2 premiers bancs (1 = parents, 2 = témoins) + 3e banc côté Fi pour Maman, Jean-Louis et Tantine Bodo. Chaises pour demoiselles et garçons d'honneur côté Maria Guadalupe à gauche. Prévoir vase pour Marie de Lourdes.",tags:[{t:"responsable",l:"Mamy · Maxime · Nante"}],persons:["Mamy","Maxime","Nante"]},
+      {time:"14h20",title:"Départ de Safidy pour l'église",desc:"⚠ PAS plus tard que 14h20.",tags:[{t:"alert",l:"Pas plus tard que 14h20"}],persons:["Safidy"]},
+    ]
+  },
+  {
+    id:"church",section:"church",dot:"#6a9a58",label:"Cérémonie religieuse",title:"Église — Messe & cortège",time:"14h30 – 16h10",
+    events:[
+      {time:"14h30–16h00",title:"Messe",desc:"Mot d'accueil déjà marqué dans le livret des animateurs.",tags:[{t:"prestataire",l:"Père Gaston"}],persons:[]},
+      {time:"16h00",title:"Fin de messe — sortie des invités",desc:"Les demoiselles d'honneur sortent en premier, suivies des parents etc. Distribution des bâtons à l'entrée.",tags:[{t:"responsable",l:"Assistante Larissa"}],persons:["Larissa"]},
+      {time:"16h10",title:"Ranger les décorations de l'église",desc:"Ranger panneau, rubans, livrets de messe qui traînent. Tout ramener au château.",tags:[{t:"responsable",l:"Assistante Larissa"}],persons:["Larissa"]},
+    ]
+  },
+  {
+    id:"vh",section:"chateau",dot:"#7a6aaa",label:"Vin d'honneur",title:"Château Erigoye — Accueil & cocktail",time:"16h00 – 18h00",
+    events:[
+      {time:"16h00",title:"Arrivée des invités",desc:"Les invités passent par la cour principale (indiqués par des panneaux). Barnum cache panneaux + photocall. Porte couloir VH/cour fermée. Rafraîchissements : 2 bonbonnes eau concombre + eau citronnée + gobelets carton. Musique dès maintenant si possible.",tags:[{t:"responsable",l:"Larissa · Nanah · Ilo"}],persons:["Larissa","Nanah","Ilo"]},
+      {time:"16h00",title:"Installer eau + soda + vin sur les tables",desc:"Salle principale — vin déjà ouvert.",tags:[{t:"responsable",l:"Larissa"}],persons:["Larissa"]},
+      {time:"16h30",title:"Top départ vin d'honneur",desc:"Larissa donne le top sur signe de Nante/Rasanda. Possiblement repos pour Safidy et Maxime avant.",tags:[{t:"responsable",l:"Larissa · Nante · Rasanda"}],persons:["Larissa","Nante","Rasanda"]},
+      {time:"16h30",title:"Accueil au vin d'honneur — discours M&S",desc:"Discours de Maxime et Safidy (cf. détails livret).",tags:[{t:"responsable",l:"Safidy · Maxime"}],persons:["Safidy","Maxime"]},
+      {time:"16h35",title:"Prière début de repas",desc:"Père Gaston.",tags:[{t:"prestataire",l:"Père Gaston"}],persons:["Père Gaston"]},
+      {time:"17h00",title:"Installation des dernières décos",desc:"Cagettes de fruits dans le chariot des plans de tables. Panneaux de l'église autour du chariot. NB : le panneau No Phone sera recouvert d'un tissu jaune (mécanisme déjà prévu, juste à recouvrir).",tags:[{t:"responsable",l:"Larissa · Assistante"}],persons:["Larissa"]},
+      {time:"17h00–17h30",title:"Photos de couple",desc:"Salle à manger, lustre/escalier/billard.",tags:[{t:"prestataire",l:"Photographe"}],persons:["Safidy","Maxime"]},
+      {time:"17h30",title:"Photos Bridal Party",desc:"Priorité témoins (sans famille, peu de photos) puis Bridal Party uniquement.",tags:[{t:"prestataire",l:"Photographe"}],persons:["Safidy","Maxime"]},
+      {time:"18h00",title:"Photos groupes",desc:"Cour principale. Pas de photos multiples — respecter l'ordre.",tags:[{t:"prestataire",l:"Photographe"}],persons:[]},
+    ]
+  },
+  {
+    id:"repas",section:"repas",dot:"#c07850",label:"Repas",title:"Dîner — Service & animations",time:"18h40 – 21h30",
+    notes:[{title:"Consigne serveurs",items:["S'assurer que les gens ont de l'eau à leur table pendant tout le repas","S'assurer à quelle heure arrive La Pastoune : demander par mail"]}],
+    events:[
+      {time:"18h40",title:"Danse d'entrée",desc:"Salle principale. Musique sur clé USB.",tags:[{t:"responsable",l:"Safidy · Maxime · Bridal Party"}],persons:["Safidy","Maxime"]},
+      {time:"18h50",title:"Service des entrées",desc:"Des plats à partager — à confirmer avec le Foodtruck.",tags:[{t:"prestataire",l:"Serveuses · Foodtruck"},{t:"todo",l:"À confirmer avec Foodtruck"}],persons:[]},
+      {time:"19h20",title:"Plat principal — ouverture du Foodtruck",desc:"Ouverture du food truck. Mi et Jeanny préparent la table en posant les assiettes du plat. Débarrasser les assiettes des entrées pendant que les gens font la queue.",tags:[{t:"responsable",l:"Mi · Nantenaina · Serveuses · Larissa"}],persons:["Miangaly","Larissa"]},
+      {time:"21h00",title:"Première danse",desc:"Salle principale. Clé USB.",tags:[{t:"responsable",l:"Safidy · Maxime"}],persons:["Safidy","Maxime"]},
+      {time:"21h05",title:"Dancefloor",desc:"On commence par des vieilles musiques.",tags:[{t:"prestataire",l:"DJ · Animateurs"}],persons:[]},
+      {time:"21h15",title:"Débarrasser les assiettes du plat",tags:[{t:"responsable",l:"Serveuses"}],persons:[]},
+      {time:"21h30",title:"Animation gâteau",desc:"Arrivée sur chariot des tiramisus avec bougies. Musique : Sugar de Maroon 5.",tags:[{t:"responsable",l:"Larissa · Miangaly"},{t:"prestataire",l:"Bar à cake"}],persons:["Larissa","Miangaly"]},
+    ]
+  },
+  {
+    id:"soiree",section:"soiree",dot:"#4a8aaa",label:"Soirée & fin de nuit",title:"Fête & midnight snack",time:"21h30 – …",
+    events:[
+      {time:"00h00",title:"Midnight snack",desc:"Cour principale. 2 percolateurs eau chaude + cup noodles + couverts + chips + poubelle.",persons:[]},
+    ]
+  },
+  {
+    id:"resp",section:"all",dot:"#b89a6e",label:"Équipe",title:"Responsables & rôles clés",time:"",
+    responsables:[
+      {name:"Larissa",role:"Wedding planner · coordination générale"},
+      {name:"Assistante Larissa",role:"Décos église → château · logistique"},
+      {name:"Nanah & Ilo",role:"Accueil invités parking"},
+      {name:"Nante & Rasanda",role:"Signal top vin d'honneur"},
+      {name:"Mamy · Maxime · Nante",role:"Installation finale église 13h30"},
+      {name:"Miangaly (Mi)",role:"Animation gâteau · plat principal"},
+      {name:"Antoine · Anthony",role:"Déco église matin"},
+    ]
+  },
+  {
+    id:"todo",section:"all",dot:"#6aaa70",label:"Checklist",title:"Achats & points à confirmer",time:"",
+    checklist:{
+      achats:[
+        "Rubans + ficelle (église)",
+        "Gobelets carton (vin d'honneur)",
+        "Eau concombre + eau citronnée (2 bonbonnes VH)",
+        "Sushis pour repas midi Safidy",
+        "Vase pour Marie de Lourdes",
+        "Plaque pour four",
+        "Poubelle midnight snack",
+        "Cup noodles + couverts + chips (midnight snack)",
+      ],
+      confirmer:[
+        "Heure d'arrivée La Pastoune — envoyer mail",
+        "Menu entrées à partager — confirmer avec Foodtruck",
+        "Mobilier Erigoye : 10 mange-debout, 19 tables pliantes (4 VH + 15 salle), 3 tables rectangulaires (honneur + gâteau + plat viande), table ronde (illustratrice), lampe guinguette, bar mobile, 92 chaises Napoléon",
+        "Mobilier Souchon : vaisselles, percolateurs, tables hautes, fauteuils photo",
+        "Mobilier nous : 3 parasols, coussins, foutas, table pliante, boules pétanque",
+        "Enlever bacs devant le foodtruck",
+        "Musique clé USB prête (danse d'entrée + première danse)",
+        "Confirmer ordre des groupes photos 18h00",
+      ]
+    }
+  },
 ];
 
-function ProgrammeTab({canEdit,guests}){
+function ProgrammeTab({canEdit,guests,sections,setSections}){
   const [collapsed,setCollapsed]=useState({});
   const [filterSection,setFilterSection]=useState("all");
   const [filterPerson,setFilterPerson]=useState("all");
-  const [sections,setSections]=useState(INIT_SECTIONS);
   const [editing,setEditing]=useState(null);
   const [evTime,setEvTime]=useState("");
   const [evTitle,setEvTitle]=useState("");
@@ -1170,14 +1252,15 @@ function ProgrammeTab({canEdit,guests}){
 }
 
 function App(){
-  const [role,setRole]=useState("guest");           // guest | weddingPlanner | admin
-  const [loginTarget,setLoginTarget]=useState(null); // which role we're trying to unlock
+  const [role,setRole]=useState("guest");
+  const [loginTarget,setLoginTarget]=useState(null);
   const [tab,setTab]=useState("programme");
   const [tasks,setTasks]=useState(initTasks);
   const [providers,setProviders]=useState(initProviders);
   const [rooms,setRooms]=useState(initRooms);
   const [guests,setGuests]=useState(()=>initGuests);
   const [tables,setTables]=useState(()=>[]);
+  const [sections,setSections]=useState(INIT_SECTIONS);
   const [loaded,setLoaded]=useState(false);
 
   useEffect(()=>{
@@ -1186,6 +1269,7 @@ function App(){
       window._fb.listen("org/providers",v => { if(v) setProviders(Array.isArray(v)?v:Object.values(v)); });
       window._fb.listen("org/rooms",    v => { if(v) setRooms(Array.isArray(v)?v:Object.values(v)); });
       window._fb.listen("org/guests",   v => { if(v) setGuests(Array.isArray(v)?v:Object.values(v)); });
+      window._fb.listen("org/sections", v => { if(v) setSections(Array.isArray(v)?v:Object.values(v)); });
       setLoaded(true);
     }
     if(window._fbReady){ attachListeners(); }
@@ -1278,7 +1362,7 @@ function App(){
 
       {/* Content */}
       <div style={{padding:"1.4rem",maxWidth:"960px",margin:"0 auto"}}>
-        {tab==="programme"&&<ProgrammeTab canEdit={role==="admin"} guests={guests}/>}
+        {tab==="programme"&&<ProgrammeTab canEdit={role==="admin"} guests={guests} sections={sections} setSections={s=>{setSections(s);lsSave("sections",s);}}/>}
         {tab==="rooms"&&<RoomsTab rooms={rooms} setRooms={setRooms} guests={guests} canEdit={canEditRooms}/>}
         {tab==="providers"&&canSeeProviders&&<ProvidersTab providers={providers} setProviders={setProviders} canEdit={canEditProviders}/>}
         {tab==="guests"&&canEditTasks&&<GuestsTab guests={guests} setGuests={setGuests}/>}
