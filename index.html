@@ -986,8 +986,9 @@ function ProgrammeTab({canEdit,guests}){
   // Admin: save event
   const saveEvent=()=>{
     if(!evForm.title.trim())return;
+    const targetSecId=editModal?editModal.secId:showNewEvModal;
     setSections(prev=>prev.map(sec=>{
-      if(sec.id!==editModal.secId&&sec.id!==showNewEvModal)return sec;
+      if(sec.id!==targetSecId)return sec;
       const events=[...(sec.events||[])];
       if(editModal&&editModal.evIdx!=null){
         events[editModal.evIdx]={...evForm};
@@ -1058,18 +1059,45 @@ function ProgrammeTab({canEdit,guests}){
                   <div style={{padding:"0.8rem 1.1rem"}}>
                     {evs.map((ev,i)=>{
                       const realIdx=(sec.events||[]).indexOf(ev);
+                      const isEditing=editModal&&editModal.secId===sec.id&&editModal.evIdx===realIdx;
                       return (
-                        <div key={i} style={{display:"flex",gap:"12px",alignItems:"flex-start",padding:"0.5rem 0",borderBottom:i<evs.length-1?"1px solid #f5ece6":"none"}}>
-                          <div style={timeStyle}>{ev.time}</div>
-                          <div style={{flex:1}}>
-                            <div style={eventTitleStyle}>{ev.title}</div>
-                            {ev.tags&&ev.tags.length>0&&<div style={{marginTop:"3px",marginBottom:"3px"}}>{ev.tags.map((tg,j)=><span key={j} style={tagStyle(tg.t)}>{tg.l}</span>)}</div>}
-                            {ev.desc&&<div style={eventDescStyle}>{ev.desc}</div>}
+                        <div key={i}>
+                          <div style={{display:"flex",gap:"12px",alignItems:"flex-start",padding:"0.5rem 0",borderBottom:(!isEditing&&i<evs.length-1)?"1px solid #f5ece6":"none"}}>
+                            <div style={timeStyle}>{ev.time}</div>
+                            <div style={{flex:1}}>
+                              <div style={eventTitleStyle}>{ev.title}</div>
+                              {ev.tags&&ev.tags.length>0&&<div style={{marginTop:"3px",marginBottom:"3px"}}>{ev.tags.map((tg,j)=><span key={j} style={tagStyle(tg.t)}>{tg.l}</span>)}</div>}
+                              {ev.desc&&<div style={eventDescStyle}>{ev.desc}</div>}
+                            </div>
+                            {canEdit&&(
+                              <div style={{display:"flex",gap:"2px",flexShrink:0}}>
+                                <button onClick={e=>{e.stopPropagation();openEditEv(sec.id,realIdx);}} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.82rem",padding:"2px"}}>✏️</button>
+                                <button onClick={e=>{e.stopPropagation();deleteEvent(sec.id,realIdx);}} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.82rem",padding:"2px"}}>🗑</button>
+                              </div>
+                            )}
                           </div>
-                          {canEdit&&(
-                            <div style={{display:"flex",gap:"2px",flexShrink:0}}>
-                              <button onClick={()=>openEditEv(sec.id,realIdx)} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.82rem",padding:"2px"}}>✏️</button>
-                              <button onClick={()=>deleteEvent(sec.id,realIdx)} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.82rem",padding:"2px"}}>🗑</button>
+                          {isEditing&&(
+                            <div style={{background:"#fdf8f4",border:"1.5px solid #c4755a",borderRadius:"10px",padding:"1rem",margin:"0.5rem 0 0.75rem",display:"flex",flexDirection:"column",gap:"0.8rem"}}>
+                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                                <span style={{fontSize:"0.78rem",fontWeight:"700",color:"#c4755a",textTransform:"uppercase",letterSpacing:"0.07em"}}>Modifier l'étape</span>
+                                <button onClick={e=>{e.stopPropagation();setEditModal(null);setEvForm(blankEv);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:"1.1rem",color:"#8b6355"}}>×</button>
+                              </div>
+                              <div><label style={lStyle}>Heure / Moment</label><input style={iStyle} value={evForm.time} onChange={e=>setEvForm({...evForm,time:e.target.value})} placeholder="Ex: 19h00, Pendant plat…"/></div>
+                              <div><label style={lStyle}>Titre *</label><input style={iStyle} value={evForm.title} onChange={e=>setEvForm({...evForm,title:e.target.value})}/></div>
+                              <div><label style={lStyle}>Description</label><textarea style={{...iStyle,height:"60px",resize:"vertical"}} value={evForm.desc||""} onChange={e=>setEvForm({...evForm,desc:e.target.value})}/></div>
+                              <div>
+                                <label style={lStyle}>Personnes concernées</label>
+                                <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginTop:"4px",padding:"8px",background:"white",borderRadius:"8px",border:"1.5px solid #d9c9bf"}}>
+                                  {allPersons.map(p=>{
+                                    const sel=(evForm.persons||[]).includes(p);
+                                    return <button key={p} onClick={e=>{e.stopPropagation();const cur=evForm.persons||[];setEvForm({...evForm,persons:sel?cur.filter(x=>x!==p):[...cur,p]});}} style={{fontSize:"11px",padding:"3px 10px",borderRadius:"12px",border:`1px solid ${sel?"#c4755a":"#d9c9bf"}`,background:sel?"#f5e8e0":"white",color:sel?"#c4755a":"#8b6355",cursor:"pointer",fontFamily:"'Lora',serif"}}>{p}</button>;
+                                  })}
+                                </div>
+                              </div>
+                              <div style={{display:"flex",gap:"0.6rem",justifyContent:"flex-end"}}>
+                                <button style={btnS} onClick={e=>{e.stopPropagation();setEditModal(null);setEvForm(blankEv);}}>Annuler</button>
+                                <button style={btnP} onClick={e=>{e.stopPropagation();saveEvent();}}>Enregistrer</button>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1122,6 +1150,31 @@ function ProgrammeTab({canEdit,guests}){
                     </div>
                   </div>
                 )}
+                {/* Nouvelle étape inline */}
+                {canEdit&&showNewEvModal===sec.id&&(
+                  <div style={{background:"#fdf8f4",border:"1.5px solid #c4755a",borderRadius:"10px",padding:"1rem",margin:"0.5rem 1.1rem 0.8rem",display:"flex",flexDirection:"column",gap:"0.8rem"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span style={{fontSize:"0.78rem",fontWeight:"700",color:"#c4755a",textTransform:"uppercase",letterSpacing:"0.07em"}}>Nouvelle étape</span>
+                      <button onClick={e=>{e.stopPropagation();setShowNewEvModal(null);setEvForm(blankEv);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:"1.1rem",color:"#8b6355"}}>×</button>
+                    </div>
+                    <div><label style={lStyle}>Heure / Moment</label><input style={iStyle} value={evForm.time} onChange={e=>setEvForm({...evForm,time:e.target.value})} placeholder="Ex: 19h00, Pendant plat…"/></div>
+                    <div><label style={lStyle}>Titre *</label><input style={iStyle} value={evForm.title} onChange={e=>setEvForm({...evForm,title:e.target.value})} placeholder="Intitulé de l'étape…"/></div>
+                    <div><label style={lStyle}>Description</label><textarea style={{...iStyle,height:"60px",resize:"vertical"}} value={evForm.desc||""} onChange={e=>setEvForm({...evForm,desc:e.target.value})}/></div>
+                    <div>
+                      <label style={lStyle}>Personnes concernées</label>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginTop:"4px",padding:"8px",background:"white",borderRadius:"8px",border:"1.5px solid #d9c9bf"}}>
+                        {allPersons.map(p=>{
+                          const sel=(evForm.persons||[]).includes(p);
+                          return <button key={p} onClick={e=>{e.stopPropagation();const cur=evForm.persons||[];setEvForm({...evForm,persons:sel?cur.filter(x=>x!==p):[...cur,p]});}} style={{fontSize:"11px",padding:"3px 10px",borderRadius:"12px",border:`1px solid ${sel?"#c4755a":"#d9c9bf"}`,background:sel?"#f5e8e0":"white",color:sel?"#c4755a":"#8b6355",cursor:"pointer",fontFamily:"'Lora',serif"}}>{p}</button>;
+                        })}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:"0.6rem",justifyContent:"flex-end"}}>
+                      <button style={btnS} onClick={e=>{e.stopPropagation();setShowNewEvModal(null);setEvForm(blankEv);}}>Annuler</button>
+                      <button style={btnP} onClick={e=>{e.stopPropagation();saveEvent();}}>Enregistrer</button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1134,41 +1187,6 @@ function ProgrammeTab({canEdit,guests}){
           <span key={t} style={tagStyle(t)}>{l}</span>
         ))}
       </div>
-
-      {/* Edit/New event — inline panel, no fixed positioning */}
-      {(editModal||showNewEvModal)&&(
-        <div style={{background:"white",borderRadius:"1.2rem",border:"2px solid #c4755a",padding:"1.5rem",marginTop:"1rem"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.2rem"}}>
-            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.1rem",color:"#2c1810",margin:0}}>{editModal?"Modifier l'étape":"Nouvelle étape"}</h2>
-            <button onClick={()=>{setEditModal(null);setShowNewEvModal(null);setEvForm(blankEv);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:"1.3rem",color:"#8b6355",lineHeight:1}}>×</button>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:"0.9rem"}}>
-            <div><label style={lStyle}>Heure / Moment</label><input style={iStyle} value={evForm.time} onChange={e=>setEvForm({...evForm,time:e.target.value})} placeholder="Ex: 19h00, Pendant plat…"/></div>
-            <div><label style={lStyle}>Titre *</label><input style={iStyle} value={evForm.title} onChange={e=>setEvForm({...evForm,title:e.target.value})} placeholder="Intitulé de l'étape…"/></div>
-            <div><label style={lStyle}>Description</label><textarea style={{...iStyle,height:"72px",resize:"vertical"}} value={evForm.desc||""} onChange={e=>setEvForm({...evForm,desc:e.target.value})}/></div>
-            <div>
-              <label style={lStyle}>Personnes concernées</label>
-              <div style={{display:"flex",flexWrap:"wrap",gap:"6px",marginTop:"4px",padding:"8px",background:"#fdf8f4",borderRadius:"8px",border:"1.5px solid #d9c9bf"}}>
-                {allPersons.map(p=>{
-                  const sel=(evForm.persons||[]).includes(p);
-                  return (
-                    <button key={p} onClick={()=>{
-                      const cur=evForm.persons||[];
-                      setEvForm({...evForm,persons:sel?cur.filter(x=>x!==p):[...cur,p]});
-                    }} style={{fontSize:"11px",padding:"3px 10px",borderRadius:"12px",border:`1px solid ${sel?"#c4755a":"#d9c9bf"}`,background:sel?"#f5e8e0":"white",color:sel?"#c4755a":"#8b6355",cursor:"pointer",fontFamily:"'Lora',serif"}}>
-                      {p}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div style={{display:"flex",gap:"0.7rem",justifyContent:"flex-end"}}>
-              <button style={btnS} onClick={()=>{setEditModal(null);setShowNewEvModal(null);setEvForm(blankEv);}}>Annuler</button>
-              <button style={btnP} onClick={saveEvent}>Enregistrer</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
