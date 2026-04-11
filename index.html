@@ -1135,16 +1135,20 @@ function ProgrammeTab({canEdit,guests}){
         ))}
       </div>
 
-      {/* Edit/New event modal */}
+      {/* Edit/New event — inline panel, no fixed positioning */}
       {(editModal||showNewEvModal)&&(
-        <Modal title={editModal?"Modifier l'étape":"Nouvelle étape"} onClose={()=>{setEditModal(null);setShowNewEvModal(null);setEvForm(blankEv);}}>
+        <div style={{background:"white",borderRadius:"1.2rem",border:"2px solid #c4755a",padding:"1.5rem",marginTop:"1rem"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1.2rem"}}>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.1rem",color:"#2c1810",margin:0}}>{editModal?"Modifier l'étape":"Nouvelle étape"}</h2>
+            <button onClick={()=>{setEditModal(null);setShowNewEvModal(null);setEvForm(blankEv);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:"1.3rem",color:"#8b6355",lineHeight:1}}>×</button>
+          </div>
           <div style={{display:"flex",flexDirection:"column",gap:"0.9rem"}}>
             <div><label style={lStyle}>Heure / Moment</label><input style={iStyle} value={evForm.time} onChange={e=>setEvForm({...evForm,time:e.target.value})} placeholder="Ex: 19h00, Pendant plat…"/></div>
             <div><label style={lStyle}>Titre *</label><input style={iStyle} value={evForm.title} onChange={e=>setEvForm({...evForm,title:e.target.value})} placeholder="Intitulé de l'étape…"/></div>
             <div><label style={lStyle}>Description</label><textarea style={{...iStyle,height:"72px",resize:"vertical"}} value={evForm.desc||""} onChange={e=>setEvForm({...evForm,desc:e.target.value})}/></div>
             <div>
               <label style={lStyle}>Personnes concernées</label>
-              <div style={{display:"flex",flexWrap:"wrap",gap:"6px",marginTop:"4px",padding:"8px",background:"#fdf8f4",borderRadius:"8px",border:"1.5px solid #d9c9bf",maxHeight:"140px",overflowY:"auto"}}>
+              <div style={{display:"flex",flexWrap:"wrap",gap:"6px",marginTop:"4px",padding:"8px",background:"#fdf8f4",borderRadius:"8px",border:"1.5px solid #d9c9bf"}}>
                 {allPersons.map(p=>{
                   const sel=(evForm.persons||[]).includes(p);
                   return (
@@ -1163,7 +1167,7 @@ function ProgrammeTab({canEdit,guests}){
               <button style={btnP} onClick={saveEvent}>Enregistrer</button>
             </div>
           </div>
-        </Modal>
+        </div>
       )}
     </div>
   );
