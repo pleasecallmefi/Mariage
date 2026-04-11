@@ -862,32 +862,30 @@ function ProgrammeTab({canEdit,guests}){
   const [filterSection,setFilterSection]=useState("all");
   const [filterPerson,setFilterPerson]=useState("all");
   const [sections,setSections]=useState(INIT_SECTIONS);
-  // editing: {type,secId,evIdx?,listType?,itemIdx?} | null
   const [editing,setEditing]=useState(null);
-  const blankEv={time:"",title:"",desc:"",tags:[],persons:[]};
-  const blankSec={label:"",title:"",time:"",section:"church",dot:"#6a9a58"};
-  const [evForm,setEvForm]=useState(blankEv);
-  const [secForm,setSecForm]=useState(blankSec);
-  const [itemForm,setItemForm]=useState(""); // for checklist items & responsable rows
+  const [evTime,setEvTime]=useState("");
+  const [evTitle,setEvTitle]=useState("");
+  const [evDesc,setEvDesc]=useState("");
+  const [evPersons,setEvPersons]=useState([]);
+  const [secLabel,setSecLabel]=useState("");
+  const [secTitle,setSecTitle]=useState("");
+  const [secTime,setSecTime]=useState("");
+  const [secSection,setSecSection]=useState("church");
+  const [secDot,setSecDot]=useState("#6a9a58");
+  const [itemVal,setItemVal]=useState("");
 
-  const closeEdit=()=>{setEditing(null);setEvForm(blankEv);setSecForm(blankSec);setItemForm("");};
-  const stopToggle=(id,e)=>{if(e)e.stopPropagation();setCollapsed(p=>({...p,[id]:!p[id]}));};
+  const closeEdit=()=>{setEditing(null);setEvTime("");setEvTitle("");setEvDesc("");setEvPersons([]);setSecLabel("");setSecTitle("");setSecTime("");setSecSection("church");setSecDot("#6a9a58");setItemVal("");};
 
-  const TAG={
-    prestataire:{bg:"#f0ebe0",color:"#8a6a40",border:"1px solid #ddd0b0"},
-    responsable:{bg:"#e8eef5",color:"#456080",border:"1px solid #c0d0e0"},
-    alert:{bg:"#fceaea",color:"#903030",border:"1px solid #f0c0c0"},
-    todo:{bg:"#e8f0e4",color:"#406030",border:"1px solid #b8d8a8"},
-  };
+  const TAG={prestataire:{bg:"#f0ebe0",color:"#8a6a40",border:"1px solid #ddd0b0"},responsable:{bg:"#e8eef5",color:"#456080",border:"1px solid #c0d0e0"},alert:{bg:"#fceaea",color:"#903030",border:"1px solid #f0c0c0"},todo:{bg:"#e8f0e4",color:"#406030",border:"1px solid #b8d8a8"}};
   const tagStyle=(t)=>({display:"inline-block",fontSize:"10px",fontWeight:"600",letterSpacing:"0.06em",textTransform:"uppercase",padding:"2px 8px",borderRadius:"10px",marginRight:"4px",marginBottom:"4px",...(TAG[t]||TAG.todo)});
   const dotOpts=["#6a9a58","#7a6aaa","#c07850","#4a8aaa","#b89a6e","#c4755a","#6aaa70"];
   const secOpts=[{v:"church",l:"Cérémonie"},{v:"chateau",l:"Vin d'honneur"},{v:"repas",l:"Repas"},{v:"soiree",l:"Soirée"},{v:"all",l:"Toujours visible"}];
-  const sectionFilters=[{id:"all",l:"Tout afficher"},{id:"church",l:"Cérémonie"},{id:"chateau",l:"Vin d'honneur"},{id:"repas",l:"Repas"},{id:"soiree",l:"Soirée"}];
+  const sfilt=[{id:"all",l:"Tout afficher"},{id:"church",l:"Cérémonie"},{id:"chateau",l:"Vin d'honneur"},{id:"repas",l:"Repas"},{id:"soiree",l:"Soirée"}];
 
   const allPersons=useMemo(()=>{
     const a=guests.map(g=>g.name);
     const b=sections.flatMap(s=>(s.events||[]).flatMap(e=>e.persons||[]));
-    return [...new Set([...a,...b])].sort();
+    return[...new Set([...a,...b])].sort();
   },[guests,sections]);
 
   const visible=useMemo(()=>sections.filter(sec=>{
@@ -897,89 +895,58 @@ function ProgrammeTab({canEdit,guests}){
     return(sec.events||[]).some(ev=>(ev.persons||[]).includes(filterPerson));
   }),[sections,filterSection,filterPerson]);
 
-  const visEvs=(sec)=>{
-    if(!sec.events)return[];
-    if(filterPerson==="all")return sec.events;
-    return sec.events.filter(ev=>(ev.persons||[]).includes(filterPerson));
-  };
-
-  /* ─── Handlers ─────────────────────────────────────────── */
+  const visEvs=(sec)=>{if(!sec.events)return[];if(filterPerson==="all")return sec.events;return sec.events.filter(ev=>(ev.persons||[]).includes(filterPerson));};
   const updSec=(secId,fn)=>setSections(p=>p.map(s=>s.id===secId?fn(s):s));
+  const stopToggle=(id,e)=>{if(e)e.stopPropagation();setCollapsed(p=>({...p,[id]:!p[id]}));};
 
-  // Events
   const saveEvent=()=>{
-    if(!evForm.title.trim())return;
+    if(!evTitle.trim())return;
+    const ev={time:evTime,title:evTitle,desc:evDesc,tags:[],persons:evPersons};
     const isNew=editing.type==="newEvent";
-    updSec(editing.secId,sec=>{
-      const evs=[...(sec.events||[])];
-      if(isNew)evs.push({...evForm,persons:evForm.persons||[]});
-      else evs[editing.evIdx]={...evForm};
-      return{...sec,events:evs};
-    });
+    updSec(editing.secId,sec=>{const evs=[...(sec.events||[])];if(isNew)evs.push(ev);else evs[editing.evIdx]=ev;return{...sec,events:evs};});
     closeEdit();
   };
   const delEvent=(secId,idx,e)=>{e.stopPropagation();updSec(secId,s=>({...s,events:s.events.filter((_,i)=>i!==idx)}));};
-  const openEditEv=(secId,idx,e)=>{e.stopPropagation();const sec=sections.find(s=>s.id===secId);setEvForm({...blankEv,...sec.events[idx],persons:sec.events[idx].persons||[]});setEditing({type:"event",secId,evIdx:idx});};
-  const openNewEv=(secId,e)=>{e.stopPropagation();setEvForm(blankEv);setEditing({type:"newEvent",secId});};
+  const openEditEv=(secId,idx,e)=>{e.stopPropagation();const sec=sections.find(s=>s.id===secId);const ev=sec.events[idx];setEvTime(ev.time||"");setEvTitle(ev.title||"");setEvDesc(ev.desc||"");setEvPersons(ev.persons||[]);setEditing({type:"event",secId,evIdx:idx});};
+  const openNewEv=(secId,e)=>{e.stopPropagation();setEvTime("");setEvTitle("");setEvDesc("");setEvPersons([]);setEditing({type:"newEvent",secId});};
 
-  // Sections
   const saveSec=()=>{
-    if(!secForm.title.trim())return;
-    if(editing.type==="newSection"){const id="s"+Date.now();setSections(p=>[...p,{id,...secForm,events:[]}]);}
-    else updSec(editing.secId,s=>({...s,...secForm}));
+    if(!secTitle.trim())return;
+    if(editing.type==="newSection"){const id="s"+Date.now();setSections(p=>[...p,{id,label:secLabel,title:secTitle,time:secTime,section:secSection,dot:secDot,events:[]}]);}
+    else updSec(editing.secId,s=>({...s,label:secLabel,title:secTitle,time:secTime,section:secSection,dot:secDot}));
     closeEdit();
   };
   const delSec=(id,e)=>{e.stopPropagation();if(!window.confirm("Supprimer cette section ?"))return;setSections(p=>p.filter(s=>s.id!==id));};
-  const openEditSec=(sec,e)=>{e.stopPropagation();setSecForm({label:sec.label,title:sec.title,time:sec.time||"",section:sec.section,dot:sec.dot});setEditing({type:"section",secId:sec.id});};
+  const openEditSec=(sec,e)=>{e.stopPropagation();setSecLabel(sec.label);setSecTitle(sec.title);setSecTime(sec.time||"");setSecSection(sec.section);setSecDot(sec.dot);setEditing({type:"section",secId:sec.id});};
 
-  // Responsables
   const saveResp=()=>{
-    if(!itemForm.trim())return;
-    const [name,...rest]=itemForm.split("|");
-    const role=rest.join("|").trim()||"";
-    const entry={name:name.trim(),role};
+    if(!itemVal.trim())return;
+    const[name,...rest]=itemVal.split("|");
+    const entry={name:name.trim(),role:rest.join("|").trim()};
     const isNew=editing.type==="newResp";
-    updSec(editing.secId,s=>{
-      const r=[...(s.responsables||[])];
-      if(isNew)r.push(entry);else r[editing.itemIdx]=entry;
-      return{...s,responsables:r};
-    });
+    updSec(editing.secId,s=>{const r=[...(s.responsables||[])];if(isNew)r.push(entry);else r[editing.itemIdx]=entry;return{...s,responsables:r};});
     closeEdit();
   };
   const delResp=(secId,idx,e)=>{e.stopPropagation();updSec(secId,s=>({...s,responsables:s.responsables.filter((_,i)=>i!==idx)}));};
-  const openEditResp=(secId,idx,e)=>{e.stopPropagation();const s=sections.find(x=>x.id===secId);const r=s.responsables[idx];setItemForm(r.name+(r.role?"|"+r.role:""));setEditing({type:"resp",secId,itemIdx:idx});};
-  const openNewResp=(secId,e)=>{e.stopPropagation();setItemForm("");setEditing({type:"newResp",secId});};
+  const openEditResp=(secId,idx,e)=>{e.stopPropagation();const s=sections.find(x=>x.id===secId);const r=s.responsables[idx];setItemVal(r.name+(r.role?"|"+r.role:""));setEditing({type:"resp",secId,itemIdx:idx});};
+  const openNewResp=(secId,e)=>{e.stopPropagation();setItemVal("");setEditing({type:"newResp",secId});};
 
-  // Checklist items
   const saveItem=(listType)=>{
-    if(!itemForm.trim())return;
+    if(!itemVal.trim())return;
     const isNew=editing.type==="newItem";
-    updSec(editing.secId,s=>{
-      const cl={...s.checklist};
-      const arr=[...cl[listType]];
-      if(isNew)arr.push(itemForm.trim());else arr[editing.itemIdx]=itemForm.trim();
-      return{...s,checklist:{...cl,[listType]:arr}};
-    });
+    updSec(editing.secId,s=>{const cl={...s.checklist};const arr=[...cl[listType]];if(isNew)arr.push(itemVal.trim());else arr[editing.itemIdx]=itemVal.trim();return{...s,checklist:{...cl,[listType]:arr}};});
     closeEdit();
   };
   const delItem=(secId,listType,idx,e)=>{e.stopPropagation();updSec(secId,s=>{const cl={...s.checklist};cl[listType]=cl[listType].filter((_,i)=>i!==idx);return{...s,checklist:cl};});};
-  const openEditItem=(secId,listType,idx,e)=>{e.stopPropagation();const s=sections.find(x=>x.id===secId);setItemForm(s.checklist[listType][idx]);setEditing({type:"item",secId,listType,itemIdx:idx});};
-  const openNewItem=(secId,listType,e)=>{e.stopPropagation();setItemForm("");setEditing({type:"newItem",secId,listType});};
+  const openEditItem=(secId,listType,idx,e)=>{e.stopPropagation();const s=sections.find(x=>x.id===secId);setItemVal(s.checklist[listType][idx]);setEditing({type:"item",secId,listType,itemIdx:idx});};
+  const openNewItem=(secId,listType,e)=>{e.stopPropagation();setItemVal("");setEditing({type:"newItem",secId,listType});};
 
-  /* ─── Shared UI ─────────────────────────────────────────── */
-  const PersonPicker=({form,setForm})=>(
-    <div>
-      <label style={lStyle}>Personnes concernées</label>
-      <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginTop:"4px",padding:"8px",background:"white",borderRadius:"8px",border:"1.5px solid #d9c9bf"}}>
-        {allPersons.map(p=>{const sel=(form.persons||[]).includes(p);return<button key={p} onClick={e=>{e.stopPropagation();const c=form.persons||[];setForm({...form,persons:sel?c.filter(x=>x!==p):[...c,p]});}} style={{fontSize:"11px",padding:"3px 10px",borderRadius:"12px",border:`1px solid ${sel?"#c4755a":"#d9c9bf"}`,background:sel?"#f5e8e0":"white",color:sel?"#c4755a":"#8b6355",cursor:"pointer",fontFamily:"'Lora',serif"}}>{p}</button>;})}
-      </div>
-    </div>
-  );
+  const togglePerson=(p)=>{setEvPersons(prev=>prev.includes(p)?prev.filter(x=>x!==p):[...prev,p]);};
 
-  const InlineForm=({label,onSave,children})=>(
-    <div onClick={e=>e.stopPropagation()} style={{background:"#fdf8f4",border:"1.5px solid #c4755a",borderRadius:"10px",padding:"0.9rem",marginTop:"6px",display:"flex",flexDirection:"column",gap:"0.7rem"}}>
+  const formBox=(title,onSave,children)=>(
+    <div style={{background:"#fdf8f4",border:"1.5px solid #c4755a",borderRadius:"10px",padding:"0.9rem",marginTop:"6px",display:"flex",flexDirection:"column",gap:"0.7rem"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span style={{fontSize:"0.72rem",fontWeight:"700",color:"#c4755a",textTransform:"uppercase",letterSpacing:"0.07em"}}>{label}</span>
+        <span style={{fontSize:"0.72rem",fontWeight:"700",color:"#c4755a",textTransform:"uppercase",letterSpacing:"0.07em"}}>{title}</span>
         <button onClick={e=>{e.stopPropagation();closeEdit();}} style={{background:"none",border:"none",cursor:"pointer",fontSize:"1.1rem",color:"#8b6355",lineHeight:1}}>×</button>
       </div>
       {children}
@@ -990,39 +957,6 @@ function ProgrammeTab({canEdit,guests}){
     </div>
   );
 
-  const SecEditForm=()=>(
-    <InlineForm label={editing.type==="newSection"?"Nouvelle section":"Modifier la section"} onSave={saveSec}>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.6rem"}}>
-        <div><label style={lStyle}>Libellé court</label><input style={iStyle} value={secForm.label} onChange={e=>setSecForm({...secForm,label:e.target.value})} placeholder="Ex: Cérémonie…"/></div>
-        <div><label style={lStyle}>Horaire</label><input style={iStyle} value={secForm.time} onChange={e=>setSecForm({...secForm,time:e.target.value})} placeholder="14h30 – 16h15"/></div>
-      </div>
-      <div><label style={lStyle}>Titre *</label><input style={iStyle} value={secForm.title} onChange={e=>setSecForm({...secForm,title:e.target.value})}/></div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.6rem"}}>
-        <div><label style={lStyle}>Catégorie</label>
-          <select style={iStyle} value={secForm.section} onChange={e=>setSecForm({...secForm,section:e.target.value})}>
-            {secOpts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
-          </select>
-        </div>
-        <div><label style={lStyle}>Couleur</label>
-          <div style={{display:"flex",gap:"5px",marginTop:"4px",flexWrap:"wrap"}}>
-            {dotOpts.map(c=><button key={c} onClick={e=>{e.stopPropagation();setSecForm({...secForm,dot:c});}} style={{width:"22px",height:"22px",borderRadius:"50%",background:c,border:`3px solid ${secForm.dot===c?"#2c1810":"transparent"}`,cursor:"pointer"}}/>)}
-          </div>
-        </div>
-      </div>
-    </InlineForm>
-  );
-
-  const EvForm=({label})=>(
-    <InlineForm label={label} onSave={saveEvent}>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:"0.6rem"}}>
-        <div><label style={lStyle}>Heure</label><input style={iStyle} value={evForm.time} onChange={e=>setEvForm({...evForm,time:e.target.value})} placeholder="19h00…"/></div>
-        <div><label style={lStyle}>Titre *</label><input style={iStyle} value={evForm.title} onChange={e=>setEvForm({...evForm,title:e.target.value})}/></div>
-      </div>
-      <div><label style={lStyle}>Description</label><textarea style={{...iStyle,height:"56px",resize:"vertical"}} value={evForm.desc||""} onChange={e=>setEvForm({...evForm,desc:e.target.value})}/></div>
-      <PersonPicker form={evForm} setForm={setEvForm}/>
-    </InlineForm>
-  );
-
   const editBtns=(onEdit,onDel)=>(
     <div style={{display:"flex",gap:"2px",flexShrink:0,marginLeft:"4px"}}>
       <button onClick={onEdit} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.8rem",padding:"2px"}}>✏️</button>
@@ -1030,13 +964,50 @@ function ProgrammeTab({canEdit,guests}){
     </div>
   );
 
-  /* ─── Render ────────────────────────────────────────────── */
-  return (
+  const secFormFields=(
+    <>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.6rem"}}>
+        <div><label style={lStyle}>Libellé court</label><input style={iStyle} value={secLabel} onChange={e=>setSecLabel(e.target.value)} placeholder="Ex: Cérémonie…"/></div>
+        <div><label style={lStyle}>Horaire</label><input style={iStyle} value={secTime} onChange={e=>setSecTime(e.target.value)} placeholder="14h30 – 16h15"/></div>
+      </div>
+      <div><label style={lStyle}>Titre *</label><input style={iStyle} value={secTitle} onChange={e=>setSecTitle(e.target.value)}/></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.6rem"}}>
+        <div><label style={lStyle}>Catégorie</label>
+          <select style={iStyle} value={secSection} onChange={e=>setSecSection(e.target.value)}>
+            {secOpts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
+          </select>
+        </div>
+        <div><label style={lStyle}>Couleur</label>
+          <div style={{display:"flex",gap:"5px",marginTop:"4px",flexWrap:"wrap"}}>
+            {dotOpts.map(c=><button key={c} onClick={e=>{e.stopPropagation();setSecDot(c);}} style={{width:"22px",height:"22px",borderRadius:"50%",background:c,border:`3px solid ${secDot===c?"#2c1810":"transparent"}`,cursor:"pointer"}}/>)}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const evFormFields=(
+    <>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:"0.6rem"}}>
+        <div><label style={lStyle}>Heure</label><input style={iStyle} value={evTime} onChange={e=>setEvTime(e.target.value)} placeholder="19h00…"/></div>
+        <div><label style={lStyle}>Titre *</label><input style={iStyle} value={evTitle} onChange={e=>setEvTitle(e.target.value)}/></div>
+      </div>
+      <div><label style={lStyle}>Description</label><textarea style={{...iStyle,height:"56px",resize:"vertical"}} value={evDesc} onChange={e=>setEvDesc(e.target.value)}/></div>
+      <div>
+        <label style={lStyle}>Personnes concernées</label>
+        <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginTop:"4px",padding:"8px",background:"white",borderRadius:"8px",border:"1.5px solid #d9c9bf"}}>
+          {allPersons.map(p=>{const sel=evPersons.includes(p);return<button key={p} onClick={e=>{e.stopPropagation();togglePerson(p);}} style={{fontSize:"11px",padding:"3px 10px",borderRadius:"12px",border:`1px solid ${sel?"#c4755a":"#d9c9bf"}`,background:sel?"#f5e8e0":"white",color:sel?"#c4755a":"#8b6355",cursor:"pointer",fontFamily:"'Lora',serif"}}>{p}</button>;})}
+        </div>
+      </div>
+    </>
+  );
+
+  return(
     <div style={{fontFamily:"'Lora',serif"}}>
       {/* Filters */}
       <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"1.5rem",alignItems:"center"}}>
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
-          {sectionFilters.map(f=>(
+          {sfilt.map(f=>(
             <button key={f.id} onClick={()=>setFilterSection(f.id)}
               style={{fontSize:"11px",padding:"5px 14px",borderRadius:"20px",border:`1px solid ${filterSection===f.id?"#c4755a":"#f0e4dc"}`,background:filterSection===f.id?"#f5e8e0":"transparent",color:filterSection===f.id?"#c4755a":"#8b6355",cursor:"pointer",fontFamily:"'Lora',serif"}}>
               {f.l}
@@ -1050,7 +1021,6 @@ function ProgrammeTab({canEdit,guests}){
         </select>
       </div>
 
-      {/* Sections */}
       {visible.map(sec=>{
         const evs=visEvs(sec);
         const isEditSec=editing&&editing.type==="section"&&editing.secId===sec.id;
@@ -1065,23 +1035,21 @@ function ProgrammeTab({canEdit,guests}){
               </div>
               {sec.time&&<div style={{fontSize:"11px",color:"#b89a8e",whiteSpace:"nowrap"}}>{sec.time}</div>}
               {canEdit&&(
-                <div style={{display:"flex",gap:"4px",marginLeft:"8px"}}>
+                <div style={{display:"flex",gap:"4px",marginLeft:"8px"}} onClick={e=>e.stopPropagation()}>
                   {sec.events&&<button onClick={e=>openNewEv(sec.id,e)} style={{background:"none",border:"1px solid #f0e4dc",borderRadius:"6px",cursor:"pointer",color:"#c4755a",fontSize:"0.7rem",padding:"2px 8px",fontFamily:"'Lora',serif"}}>+ Étape</button>}
-                  <button onClick={e=>openEditSec(sec,e)} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.8rem",padding:"2px"}} title="Modifier">✏️</button>
-                  <button onClick={e=>delSec(sec.id,e)} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.8rem",padding:"2px"}} title="Supprimer">🗑</button>
+                  <button onClick={e=>openEditSec(sec,e)} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.8rem",padding:"2px"}}>✏️</button>
+                  <button onClick={e=>delSec(sec.id,e)} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.8rem",padding:"2px"}}>🗑</button>
                 </div>
               )}
               <div style={{color:"#b89a8e",fontSize:"13px",transition:"transform 0.2s",transform:collapsed[sec.id]?"rotate(-90deg)":"rotate(0deg)",marginLeft:"4px"}}>▾</div>
             </div>
 
-            {/* Section edit form */}
-            {isEditSec&&<div style={{padding:"0 1rem 0.5rem"}}><SecEditForm/></div>}
+            {/* Section edit */}
+            {isEditSec&&<div style={{padding:"0 1rem 0.5rem"}} onClick={e=>e.stopPropagation()}>{formBox(editing.type==="newSection"?"Nouvelle section":"Modifier la section",saveSec,secFormFields)}</div>}
 
-            {/* Body */}
             {!collapsed[sec.id]&&(
               <div style={{borderTop:"1px solid #f0e4dc"}}>
-
-                {/* ── Events ── */}
+                {/* Events */}
                 {sec.events&&(
                   <div style={{padding:"0.8rem 1.1rem"}}>
                     {evs.length===0&&filterPerson!=="all"&&<div style={{fontSize:"0.78rem",color:"#b89a8e",fontStyle:"italic"}}>Aucune étape pour cette personne.</div>}
@@ -1099,15 +1067,17 @@ function ProgrammeTab({canEdit,guests}){
                             </div>
                             {canEdit&&editBtns(e=>openEditEv(sec.id,ri,e),e=>delEvent(sec.id,ri,e))}
                           </div>
-                          {isEditEv&&<EvForm label="Modifier l'étape"/>}
+                          {isEditEv&&<div onClick={e=>e.stopPropagation()}>{formBox("Modifier l'étape",saveEvent,evFormFields)}</div>}
                         </div>
                       );
                     })}
-                    {editing&&editing.type==="newEvent"&&editing.secId===sec.id&&<EvForm label="Nouvelle étape"/>}
+                    {editing&&editing.type==="newEvent"&&editing.secId===sec.id&&(
+                      <div onClick={e=>e.stopPropagation()}>{formBox("Nouvelle étape",saveEvent,evFormFields)}</div>
+                    )}
                   </div>
                 )}
 
-                {/* ── Notes (read-only) ── */}
+                {/* Notes */}
                 {sec.notes&&sec.notes.map((n,ni)=>(
                   <div key={ni} style={{padding:"0.6rem 1.1rem 0.8rem",background:"#fdf8f4",borderTop:"1px solid #f0e4dc"}}>
                     <div style={{fontSize:"10px",fontWeight:"700",letterSpacing:"0.1em",textTransform:"uppercase",color:"#b89a8e",marginBottom:"0.4rem"}}>{n.title}</div>
@@ -1115,7 +1085,7 @@ function ProgrammeTab({canEdit,guests}){
                   </div>
                 ))}
 
-                {/* ── Responsables ── */}
+                {/* Responsables */}
                 {sec.responsables&&(
                   <div style={{padding:"0.8rem 1.1rem"}}>
                     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:"7px"}}>
@@ -1130,19 +1100,13 @@ function ProgrammeTab({canEdit,guests}){
                               </div>
                               {canEdit&&editBtns(e=>openEditResp(sec.id,ri,e),e=>delResp(sec.id,ri,e))}
                             </div>
-                            {isEditR&&(
-                              <InlineForm label="Modifier le responsable" onSave={saveResp}>
-                                <div><label style={lStyle}>Nom | Rôle (séparés par |)</label><input style={iStyle} value={itemForm} onChange={e=>setItemForm(e.target.value)} placeholder="Larissa | Wedding planner…"/></div>
-                              </InlineForm>
-                            )}
+                            {isEditR&&<div onClick={e=>e.stopPropagation()}>{formBox("Modifier",saveResp,<div><label style={lStyle}>Nom | Rôle</label><input style={iStyle} value={itemVal} onChange={e=>setItemVal(e.target.value)} placeholder="Larissa | Wedding planner…"/></div>)}</div>}
                           </div>
                         );
                       })}
                     </div>
                     {editing&&editing.type==="newResp"&&editing.secId===sec.id&&(
-                      <InlineForm label="Nouveau responsable" onSave={saveResp}>
-                        <div><label style={lStyle}>Nom | Rôle (séparés par |)</label><input style={iStyle} value={itemForm} onChange={e=>setItemForm(e.target.value)} placeholder="Larissa | Wedding planner…"/></div>
-                      </InlineForm>
+                      <div onClick={e=>e.stopPropagation()}>{formBox("Nouveau responsable",saveResp,<div><label style={lStyle}>Nom | Rôle</label><input style={iStyle} value={itemVal} onChange={e=>setItemVal(e.target.value)} placeholder="Larissa | Wedding planner…"/></div>)}</div>
                     )}
                     {canEdit&&!(editing&&["newResp","resp"].includes(editing.type)&&editing.secId===sec.id)&&(
                       <button onClick={e=>openNewResp(sec.id,e)} style={{...btnS,fontSize:"0.78rem",padding:"0.3rem 0.7rem",marginTop:"8px"}}>+ Responsable</button>
@@ -1150,7 +1114,7 @@ function ProgrammeTab({canEdit,guests}){
                   </div>
                 )}
 
-                {/* ── Checklist ── */}
+                {/* Checklist */}
                 {sec.checklist&&(
                   <div>
                     {[{key:"achats",title:"À acheter — lundi 13 juillet",bg:"#fdf8f4"},{key:"confirmer",title:"À confirmer avec les prestataires",bg:"white"}].map(({key,title,bg})=>(
@@ -1165,18 +1129,12 @@ function ProgrammeTab({canEdit,guests}){
                                 <div style={{fontSize:"0.78rem",color:"#5a3a2a",lineHeight:"1.6",flex:1}}>{item}</div>
                                 {canEdit&&editBtns(e=>openEditItem(sec.id,key,i,e),e=>delItem(sec.id,key,i,e))}
                               </div>
-                              {isEditItem&&(
-                                <InlineForm label="Modifier l'élément" onSave={()=>saveItem(key)}>
-                                  <input style={iStyle} value={itemForm} onChange={e=>setItemForm(e.target.value)}/>
-                                </InlineForm>
-                              )}
+                              {isEditItem&&<div onClick={e=>e.stopPropagation()}>{formBox("Modifier",()=>saveItem(key),<input style={iStyle} value={itemVal} onChange={e=>setItemVal(e.target.value)}/>)}</div>}
                             </div>
                           );
                         })}
                         {editing&&editing.type==="newItem"&&editing.secId===sec.id&&editing.listType===key&&(
-                          <InlineForm label="Nouvel élément" onSave={()=>saveItem(key)}>
-                            <input style={iStyle} value={itemForm} onChange={e=>setItemForm(e.target.value)} placeholder="Nouvel élément…"/>
-                          </InlineForm>
+                          <div onClick={e=>e.stopPropagation()}>{formBox("Nouvel élément",()=>saveItem(key),<input style={iStyle} value={itemVal} onChange={e=>setItemVal(e.target.value)} placeholder="Nouvel élément…"/>)}</div>
                         )}
                         {canEdit&&!(editing&&["newItem","item"].includes(editing.type)&&editing.secId===sec.id&&editing.listType===key)&&(
                           <button onClick={e=>openNewItem(sec.id,key,e)} style={{...btnS,fontSize:"0.78rem",padding:"0.3rem 0.7rem",marginTop:"6px"}}>+ Élément</button>
@@ -1185,7 +1143,6 @@ function ProgrammeTab({canEdit,guests}){
                     ))}
                   </div>
                 )}
-
               </div>
             )}
           </div>
@@ -1196,7 +1153,7 @@ function ProgrammeTab({canEdit,guests}){
       {canEdit&&(
         <div style={{marginTop:"0.5rem"}}>
           {editing&&editing.type==="newSection"
-            ?<SecEditForm/>
+            ?<div onClick={e=>e.stopPropagation()}>{formBox("Nouvelle section",saveSec,secFormFields)}</div>
             :<button onClick={()=>setEditing({type:"newSection"})} style={{...btnS,width:"100%",textAlign:"center",fontSize:"0.82rem"}}>+ Nouvelle section</button>
           }
         </div>
