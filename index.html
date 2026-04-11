@@ -931,103 +931,184 @@ function ProgrammeTab({canEdit,guests}){
   const [filterSection,setFilterSection]=useState("all");
   const [filterPerson,setFilterPerson]=useState("all");
   const [sections,setSections]=useState(INIT_SECTIONS);
-  const [editModal,setEditModal]=useState(null); // {secId, evIdx} or null for new
-  const [editSecModal,setEditSecModal]=useState(null); // section being edited
-  const [showNewEvModal,setShowNewEvModal]=useState(null); // secId for new event
+  // editing: {type,secId,evIdx?,listType?,itemIdx?} | null
+  const [editing,setEditing]=useState(null);
   const blankEv={time:"",title:"",desc:"",tags:[],persons:[]};
+  const blankSec={label:"",title:"",time:"",section:"church",dot:"#6a9a58"};
   const [evForm,setEvForm]=useState(blankEv);
-  const [secForm,setSecForm]=useState({label:"",title:"",time:"",section:"church",dot:"#6a9a58"});
+  const [secForm,setSecForm]=useState(blankSec);
+  const [itemForm,setItemForm]=useState(""); // for checklist items & responsable rows
 
-  const toggle=(id)=>setCollapsed(p=>({...p,[id]:!p[id]}));
+  const closeEdit=()=>{setEditing(null);setEvForm(blankEv);setSecForm(blankSec);setItemForm("");};
+  const stopToggle=(id,e)=>{if(e)e.stopPropagation();setCollapsed(p=>({...p,[id]:!p[id]}));};
 
   const TAG={
     prestataire:{bg:"#f0ebe0",color:"#8a6a40",border:"1px solid #ddd0b0"},
-    responsable: {bg:"#e8eef5",color:"#456080",border:"1px solid #c0d0e0"},
-    alert:       {bg:"#fceaea",color:"#903030",border:"1px solid #f0c0c0"},
-    todo:        {bg:"#e8f0e4",color:"#406030",border:"1px solid #b8d8a8"},
+    responsable:{bg:"#e8eef5",color:"#456080",border:"1px solid #c0d0e0"},
+    alert:{bg:"#fceaea",color:"#903030",border:"1px solid #f0c0c0"},
+    todo:{bg:"#e8f0e4",color:"#406030",border:"1px solid #b8d8a8"},
   };
-  const tagStyle=(type)=>({display:"inline-block",fontSize:"10px",fontWeight:"600",letterSpacing:"0.06em",textTransform:"uppercase",padding:"2px 8px",borderRadius:"10px",marginRight:"4px",marginBottom:"4px",...(TAG[type]||TAG.todo)});
+  const tagStyle=(t)=>({display:"inline-block",fontSize:"10px",fontWeight:"600",letterSpacing:"0.06em",textTransform:"uppercase",padding:"2px 8px",borderRadius:"10px",marginRight:"4px",marginBottom:"4px",...(TAG[t]||TAG.todo)});
+  const dotOpts=["#6a9a58","#7a6aaa","#c07850","#4a8aaa","#b89a6e","#c4755a","#6aaa70"];
+  const secOpts=[{v:"church",l:"Cérémonie"},{v:"chateau",l:"Vin d'honneur"},{v:"repas",l:"Repas"},{v:"soiree",l:"Soirée"},{v:"all",l:"Toujours visible"}];
+  const sectionFilters=[{id:"all",l:"Tout afficher"},{id:"church",l:"Cérémonie"},{id:"chateau",l:"Vin d'honneur"},{id:"repas",l:"Repas"},{id:"soiree",l:"Soirée"}];
 
-  const sectionFilters=[
-    {id:"all",label:"Tout afficher"},
-    {id:"church",label:"Cérémonie"},
-    {id:"chateau",label:"Vin d'honneur"},
-    {id:"repas",label:"Repas"},
-    {id:"soiree",label:"Soirée"},
-  ];
-
-  // All unique person names from guests list + persons already in events
   const allPersons=useMemo(()=>{
-    const fromGuests=guests.map(g=>g.name);
-    const fromEvents=sections.flatMap(s=>(s.events||[]).flatMap(e=>e.persons||[]));
-    return [...new Set([...fromGuests,...fromEvents])].sort();
+    const a=guests.map(g=>g.name);
+    const b=sections.flatMap(s=>(s.events||[]).flatMap(e=>e.persons||[]));
+    return [...new Set([...a,...b])].sort();
   },[guests,sections]);
 
-  const visible=useMemo(()=>{
-    return sections.filter(sec=>{
-      const sectionOk=filterSection==="all"||sec.section===filterSection||sec.section==="all";
-      if(!sectionOk)return false;
-      if(filterPerson==="all")return true;
-      // show section if any event has this person
-      if(sec.events){
-        return sec.events.some(ev=>(ev.persons||[]).includes(filterPerson));
-      }
-      return true;
-    });
-  },[sections,filterSection,filterPerson]);
+  const visible=useMemo(()=>sections.filter(sec=>{
+    const ok=filterSection==="all"||sec.section===filterSection||sec.section==="all";
+    if(!ok)return false;
+    if(filterPerson==="all")return true;
+    return(sec.events||[]).some(ev=>(ev.persons||[]).includes(filterPerson));
+  }),[sections,filterSection,filterPerson]);
 
-  // Determine which events to show when person filter active
-  const visibleEvents=(sec)=>{
-    if(!sec.events)return [];
+  const visEvs=(sec)=>{
+    if(!sec.events)return[];
     if(filterPerson==="all")return sec.events;
     return sec.events.filter(ev=>(ev.persons||[]).includes(filterPerson));
   };
 
-  // Admin: save event
+  /* ─── Handlers ─────────────────────────────────────────── */
+  const updSec=(secId,fn)=>setSections(p=>p.map(s=>s.id===secId?fn(s):s));
+
+  // Events
   const saveEvent=()=>{
     if(!evForm.title.trim())return;
-    const targetSecId=editModal?editModal.secId:showNewEvModal;
-    setSections(prev=>prev.map(sec=>{
-      if(sec.id!==targetSecId)return sec;
-      const events=[...(sec.events||[])];
-      if(editModal&&editModal.evIdx!=null){
-        events[editModal.evIdx]={...evForm};
-      } else {
-        events.push({...evForm,persons:evForm.persons||[]});
-      }
-      return {...sec,events};
-    }));
-    setEditModal(null);setShowNewEvModal(null);setEvForm(blankEv);
+    const isNew=editing.type==="newEvent";
+    updSec(editing.secId,sec=>{
+      const evs=[...(sec.events||[])];
+      if(isNew)evs.push({...evForm,persons:evForm.persons||[]});
+      else evs[editing.evIdx]={...evForm};
+      return{...sec,events:evs};
+    });
+    closeEdit();
   };
-  const deleteEvent=(secId,evIdx)=>{
-    setSections(prev=>prev.map(sec=>{
-      if(sec.id!==secId)return sec;
-      const events=sec.events.filter((_,i)=>i!==evIdx);
-      return {...sec,events};
-    }));
-  };
-  const openEditEv=(secId,evIdx)=>{
-    const sec=sections.find(s=>s.id===secId);
-    setEvForm({...blankEv,...sec.events[evIdx],persons:sec.events[evIdx].persons||[]});
-    setEditModal({secId,evIdx});
-  };
+  const delEvent=(secId,idx,e)=>{e.stopPropagation();updSec(secId,s=>({...s,events:s.events.filter((_,i)=>i!==idx)}));};
+  const openEditEv=(secId,idx,e)=>{e.stopPropagation();const sec=sections.find(s=>s.id===secId);setEvForm({...blankEv,...sec.events[idx],persons:sec.events[idx].persons||[]});setEditing({type:"event",secId,evIdx:idx});};
+  const openNewEv=(secId,e)=>{e.stopPropagation();setEvForm(blankEv);setEditing({type:"newEvent",secId});};
 
-  const sectionStyle={marginBottom:"1.5rem",borderRadius:"12px",overflow:"hidden",border:"1.5px solid #f0e4dc",background:"white"};
-  const headerStyle={padding:"0.9rem 1.1rem",display:"flex",alignItems:"center",gap:"10px",cursor:"pointer",background:"white"};
-  const bodyStyle={borderTop:"1px solid #f0e4dc"};
-  const timeStyle={fontSize:"11px",fontWeight:"600",color:"#b89a6e",minWidth:"56px",paddingTop:"2px",fontFamily:"'Lora',serif"};
-  const eventTitleStyle={fontSize:"0.88rem",fontWeight:"600",color:"#2c1810",marginBottom:"2px",fontFamily:"'Playfair Display',serif"};
-  const eventDescStyle={fontSize:"0.78rem",color:"#8b6355",lineHeight:"1.55"};
+  // Sections
+  const saveSec=()=>{
+    if(!secForm.title.trim())return;
+    if(editing.type==="newSection"){const id="s"+Date.now();setSections(p=>[...p,{id,...secForm,events:[]}]);}
+    else updSec(editing.secId,s=>({...s,...secForm}));
+    closeEdit();
+  };
+  const delSec=(id,e)=>{e.stopPropagation();if(!window.confirm("Supprimer cette section ?"))return;setSections(p=>p.filter(s=>s.id!==id));};
+  const openEditSec=(sec,e)=>{e.stopPropagation();setSecForm({label:sec.label,title:sec.title,time:sec.time||"",section:sec.section,dot:sec.dot});setEditing({type:"section",secId:sec.id});};
 
+  // Responsables
+  const saveResp=()=>{
+    if(!itemForm.trim())return;
+    const [name,...rest]=itemForm.split("|");
+    const role=rest.join("|").trim()||"";
+    const entry={name:name.trim(),role};
+    const isNew=editing.type==="newResp";
+    updSec(editing.secId,s=>{
+      const r=[...(s.responsables||[])];
+      if(isNew)r.push(entry);else r[editing.itemIdx]=entry;
+      return{...s,responsables:r};
+    });
+    closeEdit();
+  };
+  const delResp=(secId,idx,e)=>{e.stopPropagation();updSec(secId,s=>({...s,responsables:s.responsables.filter((_,i)=>i!==idx)}));};
+  const openEditResp=(secId,idx,e)=>{e.stopPropagation();const s=sections.find(x=>x.id===secId);const r=s.responsables[idx];setItemForm(r.name+(r.role?"|"+r.role:""));setEditing({type:"resp",secId,itemIdx:idx});};
+  const openNewResp=(secId,e)=>{e.stopPropagation();setItemForm("");setEditing({type:"newResp",secId});};
+
+  // Checklist items
+  const saveItem=(listType)=>{
+    if(!itemForm.trim())return;
+    const isNew=editing.type==="newItem";
+    updSec(editing.secId,s=>{
+      const cl={...s.checklist};
+      const arr=[...cl[listType]];
+      if(isNew)arr.push(itemForm.trim());else arr[editing.itemIdx]=itemForm.trim();
+      return{...s,checklist:{...cl,[listType]:arr}};
+    });
+    closeEdit();
+  };
+  const delItem=(secId,listType,idx,e)=>{e.stopPropagation();updSec(secId,s=>{const cl={...s.checklist};cl[listType]=cl[listType].filter((_,i)=>i!==idx);return{...s,checklist:cl};});};
+  const openEditItem=(secId,listType,idx,e)=>{e.stopPropagation();const s=sections.find(x=>x.id===secId);setItemForm(s.checklist[listType][idx]);setEditing({type:"item",secId,listType,itemIdx:idx});};
+  const openNewItem=(secId,listType,e)=>{e.stopPropagation();setItemForm("");setEditing({type:"newItem",secId,listType});};
+
+  /* ─── Shared UI ─────────────────────────────────────────── */
+  const PersonPicker=({form,setForm})=>(
+    <div>
+      <label style={lStyle}>Personnes concernées</label>
+      <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginTop:"4px",padding:"8px",background:"white",borderRadius:"8px",border:"1.5px solid #d9c9bf"}}>
+        {allPersons.map(p=>{const sel=(form.persons||[]).includes(p);return<button key={p} onClick={e=>{e.stopPropagation();const c=form.persons||[];setForm({...form,persons:sel?c.filter(x=>x!==p):[...c,p]});}} style={{fontSize:"11px",padding:"3px 10px",borderRadius:"12px",border:`1px solid ${sel?"#c4755a":"#d9c9bf"}`,background:sel?"#f5e8e0":"white",color:sel?"#c4755a":"#8b6355",cursor:"pointer",fontFamily:"'Lora',serif"}}>{p}</button>;})}
+      </div>
+    </div>
+  );
+
+  const InlineForm=({label,onSave,children})=>(
+    <div onClick={e=>e.stopPropagation()} style={{background:"#fdf8f4",border:"1.5px solid #c4755a",borderRadius:"10px",padding:"0.9rem",marginTop:"6px",display:"flex",flexDirection:"column",gap:"0.7rem"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span style={{fontSize:"0.72rem",fontWeight:"700",color:"#c4755a",textTransform:"uppercase",letterSpacing:"0.07em"}}>{label}</span>
+        <button onClick={e=>{e.stopPropagation();closeEdit();}} style={{background:"none",border:"none",cursor:"pointer",fontSize:"1.1rem",color:"#8b6355",lineHeight:1}}>×</button>
+      </div>
+      {children}
+      <div style={{display:"flex",gap:"0.5rem",justifyContent:"flex-end"}}>
+        <button style={btnS} onClick={e=>{e.stopPropagation();closeEdit();}}>Annuler</button>
+        <button style={btnP} onClick={e=>{e.stopPropagation();onSave();}}>Enregistrer</button>
+      </div>
+    </div>
+  );
+
+  const SecEditForm=()=>(
+    <InlineForm label={editing.type==="newSection"?"Nouvelle section":"Modifier la section"} onSave={saveSec}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.6rem"}}>
+        <div><label style={lStyle}>Libellé court</label><input style={iStyle} value={secForm.label} onChange={e=>setSecForm({...secForm,label:e.target.value})} placeholder="Ex: Cérémonie…"/></div>
+        <div><label style={lStyle}>Horaire</label><input style={iStyle} value={secForm.time} onChange={e=>setSecForm({...secForm,time:e.target.value})} placeholder="14h30 – 16h15"/></div>
+      </div>
+      <div><label style={lStyle}>Titre *</label><input style={iStyle} value={secForm.title} onChange={e=>setSecForm({...secForm,title:e.target.value})}/></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0.6rem"}}>
+        <div><label style={lStyle}>Catégorie</label>
+          <select style={iStyle} value={secForm.section} onChange={e=>setSecForm({...secForm,section:e.target.value})}>
+            {secOpts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
+          </select>
+        </div>
+        <div><label style={lStyle}>Couleur</label>
+          <div style={{display:"flex",gap:"5px",marginTop:"4px",flexWrap:"wrap"}}>
+            {dotOpts.map(c=><button key={c} onClick={e=>{e.stopPropagation();setSecForm({...secForm,dot:c});}} style={{width:"22px",height:"22px",borderRadius:"50%",background:c,border:`3px solid ${secForm.dot===c?"#2c1810":"transparent"}`,cursor:"pointer"}}/>)}
+          </div>
+        </div>
+      </div>
+    </InlineForm>
+  );
+
+  const EvForm=({label})=>(
+    <InlineForm label={label} onSave={saveEvent}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:"0.6rem"}}>
+        <div><label style={lStyle}>Heure</label><input style={iStyle} value={evForm.time} onChange={e=>setEvForm({...evForm,time:e.target.value})} placeholder="19h00…"/></div>
+        <div><label style={lStyle}>Titre *</label><input style={iStyle} value={evForm.title} onChange={e=>setEvForm({...evForm,title:e.target.value})}/></div>
+      </div>
+      <div><label style={lStyle}>Description</label><textarea style={{...iStyle,height:"56px",resize:"vertical"}} value={evForm.desc||""} onChange={e=>setEvForm({...evForm,desc:e.target.value})}/></div>
+      <PersonPicker form={evForm} setForm={setEvForm}/>
+    </InlineForm>
+  );
+
+  const editBtns=(onEdit,onDel)=>(
+    <div style={{display:"flex",gap:"2px",flexShrink:0,marginLeft:"4px"}}>
+      <button onClick={onEdit} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.8rem",padding:"2px"}}>✏️</button>
+      <button onClick={onDel} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.8rem",padding:"2px"}}>🗑</button>
+    </div>
+  );
+
+  /* ─── Render ────────────────────────────────────────────── */
   return (
     <div style={{fontFamily:"'Lora',serif"}}>
-      {/* Filters row */}
+      {/* Filters */}
       <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"1.5rem",alignItems:"center"}}>
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
           {sectionFilters.map(f=>(
             <button key={f.id} onClick={()=>setFilterSection(f.id)}
-              style={{fontSize:"11px",fontWeight:"400",letterSpacing:"0.07em",padding:"5px 14px",borderRadius:"20px",border:`1px solid ${filterSection===f.id?"#c4755a":"#f0e4dc"}`,background:filterSection===f.id?"#f5e8e0":"transparent",color:filterSection===f.id?"#c4755a":"#8b6355",cursor:"pointer",fontFamily:"'Lora',serif"}}>
-              {f.label}
+              style={{fontSize:"11px",padding:"5px 14px",borderRadius:"20px",border:`1px solid ${filterSection===f.id?"#c4755a":"#f0e4dc"}`,background:filterSection===f.id?"#f5e8e0":"transparent",color:filterSection===f.id?"#c4755a":"#8b6355",cursor:"pointer",fontFamily:"'Lora',serif"}}>
+              {f.l}
             </button>
           ))}
         </div>
@@ -1038,151 +1119,160 @@ function ProgrammeTab({canEdit,guests}){
         </select>
       </div>
 
+      {/* Sections */}
       {visible.map(sec=>{
-        const evs=visibleEvents(sec);
-        return (
-          <div key={sec.id} style={sectionStyle}>
-            <div style={headerStyle} onClick={()=>toggle(sec.id)}>
+        const evs=visEvs(sec);
+        const isEditSec=editing&&editing.type==="section"&&editing.secId===sec.id;
+        return(
+          <div key={sec.id} style={{marginBottom:"1.5rem",borderRadius:"12px",overflow:"hidden",border:"1.5px solid #f0e4dc",background:"white"}}>
+            {/* Header */}
+            <div style={{padding:"0.9rem 1.1rem",display:"flex",alignItems:"center",gap:"10px",background:"white",cursor:"pointer"}} onClick={e=>stopToggle(sec.id,e)}>
               <div style={{width:"9px",height:"9px",borderRadius:"50%",background:sec.dot,flexShrink:0}}/>
               <div style={{flex:1}}>
                 <div style={{fontSize:"10px",fontWeight:"700",letterSpacing:"0.14em",textTransform:"uppercase",color:"#b89a8e",marginBottom:"1px"}}>{sec.label}</div>
                 <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.05rem",fontWeight:"600",color:"#2c1810"}}>{sec.title}</div>
               </div>
               {sec.time&&<div style={{fontSize:"11px",color:"#b89a8e",whiteSpace:"nowrap"}}>{sec.time}</div>}
-              {canEdit&&sec.events&&<button onClick={e=>{e.stopPropagation();setEvForm(blankEv);setShowNewEvModal(sec.id);}} style={{background:"none",border:"1px solid #f0e4dc",borderRadius:"6px",cursor:"pointer",color:"#c4755a",fontSize:"0.72rem",padding:"2px 8px",marginLeft:"6px",fontFamily:"'Lora',serif"}}>+ Étape</button>}
+              {canEdit&&(
+                <div style={{display:"flex",gap:"4px",marginLeft:"8px"}}>
+                  {sec.events&&<button onClick={e=>openNewEv(sec.id,e)} style={{background:"none",border:"1px solid #f0e4dc",borderRadius:"6px",cursor:"pointer",color:"#c4755a",fontSize:"0.7rem",padding:"2px 8px",fontFamily:"'Lora',serif"}}>+ Étape</button>}
+                  <button onClick={e=>openEditSec(sec,e)} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.8rem",padding:"2px"}} title="Modifier">✏️</button>
+                  <button onClick={e=>delSec(sec.id,e)} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.8rem",padding:"2px"}} title="Supprimer">🗑</button>
+                </div>
+              )}
               <div style={{color:"#b89a8e",fontSize:"13px",transition:"transform 0.2s",transform:collapsed[sec.id]?"rotate(-90deg)":"rotate(0deg)",marginLeft:"4px"}}>▾</div>
             </div>
 
+            {/* Section edit form */}
+            {isEditSec&&<div style={{padding:"0 1rem 0.5rem"}}><SecEditForm/></div>}
+
+            {/* Body */}
             {!collapsed[sec.id]&&(
-              <div style={bodyStyle}>
-                {sec.events&&evs.length>0&&(
+              <div style={{borderTop:"1px solid #f0e4dc"}}>
+
+                {/* ── Events ── */}
+                {sec.events&&(
                   <div style={{padding:"0.8rem 1.1rem"}}>
+                    {evs.length===0&&filterPerson!=="all"&&<div style={{fontSize:"0.78rem",color:"#b89a8e",fontStyle:"italic"}}>Aucune étape pour cette personne.</div>}
                     {evs.map((ev,i)=>{
-                      const realIdx=(sec.events||[]).indexOf(ev);
-                      const isEditing=editModal&&editModal.secId===sec.id&&editModal.evIdx===realIdx;
-                      return (
-                        <div key={i}>
-                          <div style={{display:"flex",gap:"12px",alignItems:"flex-start",padding:"0.5rem 0",borderBottom:(!isEditing&&i<evs.length-1)?"1px solid #f5ece6":"none"}}>
-                            <div style={timeStyle}>{ev.time}</div>
+                      const ri=sec.events.indexOf(ev);
+                      const isEditEv=editing&&editing.type==="event"&&editing.secId===sec.id&&editing.evIdx===ri;
+                      return(
+                        <div key={i} style={{borderBottom:i<evs.length-1&&!isEditEv?"1px solid #f5ece6":"none"}}>
+                          <div style={{display:"flex",gap:"12px",alignItems:"flex-start",padding:"0.5rem 0"}}>
+                            <div style={{fontSize:"11px",fontWeight:"600",color:"#b89a6e",minWidth:"56px",paddingTop:"2px"}}>{ev.time}</div>
                             <div style={{flex:1}}>
-                              <div style={eventTitleStyle}>{ev.title}</div>
+                              <div style={{fontSize:"0.88rem",fontWeight:"600",color:"#2c1810",marginBottom:"2px",fontFamily:"'Playfair Display',serif"}}>{ev.title}</div>
                               {ev.tags&&ev.tags.length>0&&<div style={{marginTop:"3px",marginBottom:"3px"}}>{ev.tags.map((tg,j)=><span key={j} style={tagStyle(tg.t)}>{tg.l}</span>)}</div>}
-                              {ev.desc&&<div style={eventDescStyle}>{ev.desc}</div>}
+                              {ev.desc&&<div style={{fontSize:"0.78rem",color:"#8b6355",lineHeight:"1.55"}}>{ev.desc}</div>}
                             </div>
-                            {canEdit&&(
-                              <div style={{display:"flex",gap:"2px",flexShrink:0}}>
-                                <button onClick={e=>{e.stopPropagation();openEditEv(sec.id,realIdx);}} style={{background:"none",border:"none",cursor:"pointer",color:"#b89a8e",fontSize:"0.82rem",padding:"2px"}}>✏️</button>
-                                <button onClick={e=>{e.stopPropagation();deleteEvent(sec.id,realIdx);}} style={{background:"none",border:"none",cursor:"pointer",color:"#d4917a",fontSize:"0.82rem",padding:"2px"}}>🗑</button>
-                              </div>
-                            )}
+                            {canEdit&&editBtns(e=>openEditEv(sec.id,ri,e),e=>delEvent(sec.id,ri,e))}
                           </div>
-                          {isEditing&&(
-                            <div style={{background:"#fdf8f4",border:"1.5px solid #c4755a",borderRadius:"10px",padding:"1rem",margin:"0.5rem 0 0.75rem",display:"flex",flexDirection:"column",gap:"0.8rem"}}>
-                              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                                <span style={{fontSize:"0.78rem",fontWeight:"700",color:"#c4755a",textTransform:"uppercase",letterSpacing:"0.07em"}}>Modifier l'étape</span>
-                                <button onClick={e=>{e.stopPropagation();setEditModal(null);setEvForm(blankEv);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:"1.1rem",color:"#8b6355"}}>×</button>
-                              </div>
-                              <div><label style={lStyle}>Heure / Moment</label><input style={iStyle} value={evForm.time} onChange={e=>setEvForm({...evForm,time:e.target.value})} placeholder="Ex: 19h00, Pendant plat…"/></div>
-                              <div><label style={lStyle}>Titre *</label><input style={iStyle} value={evForm.title} onChange={e=>setEvForm({...evForm,title:e.target.value})}/></div>
-                              <div><label style={lStyle}>Description</label><textarea style={{...iStyle,height:"60px",resize:"vertical"}} value={evForm.desc||""} onChange={e=>setEvForm({...evForm,desc:e.target.value})}/></div>
-                              <div>
-                                <label style={lStyle}>Personnes concernées</label>
-                                <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginTop:"4px",padding:"8px",background:"white",borderRadius:"8px",border:"1.5px solid #d9c9bf"}}>
-                                  {allPersons.map(p=>{
-                                    const sel=(evForm.persons||[]).includes(p);
-                                    return <button key={p} onClick={e=>{e.stopPropagation();const cur=evForm.persons||[];setEvForm({...evForm,persons:sel?cur.filter(x=>x!==p):[...cur,p]});}} style={{fontSize:"11px",padding:"3px 10px",borderRadius:"12px",border:`1px solid ${sel?"#c4755a":"#d9c9bf"}`,background:sel?"#f5e8e0":"white",color:sel?"#c4755a":"#8b6355",cursor:"pointer",fontFamily:"'Lora',serif"}}>{p}</button>;
-                                  })}
-                                </div>
-                              </div>
-                              <div style={{display:"flex",gap:"0.6rem",justifyContent:"flex-end"}}>
-                                <button style={btnS} onClick={e=>{e.stopPropagation();setEditModal(null);setEvForm(blankEv);}}>Annuler</button>
-                                <button style={btnP} onClick={e=>{e.stopPropagation();saveEvent();}}>Enregistrer</button>
-                              </div>
-                            </div>
-                          )}
+                          {isEditEv&&<EvForm label="Modifier l'étape"/>}
                         </div>
                       );
                     })}
+                    {editing&&editing.type==="newEvent"&&editing.secId===sec.id&&<EvForm label="Nouvelle étape"/>}
                   </div>
                 )}
-                {sec.events&&evs.length===0&&filterPerson!=="all"&&(
-                  <div style={{padding:"0.8rem 1.1rem",fontSize:"0.78rem",color:"#b89a8e",fontStyle:"italic"}}>Aucune étape pour cette personne dans cette section.</div>
-                )}
+
+                {/* ── Notes (read-only) ── */}
                 {sec.notes&&sec.notes.map((n,ni)=>(
                   <div key={ni} style={{padding:"0.6rem 1.1rem 0.8rem",background:"#fdf8f4",borderTop:"1px solid #f0e4dc"}}>
                     <div style={{fontSize:"10px",fontWeight:"700",letterSpacing:"0.1em",textTransform:"uppercase",color:"#b89a8e",marginBottom:"0.4rem"}}>{n.title}</div>
-                    {n.items.map((item,ii)=>(
-                      <div key={ii} style={{fontSize:"0.78rem",color:"#5a3a2a",lineHeight:"1.6",paddingLeft:"1rem",position:"relative"}}>
-                        <span style={{position:"absolute",left:0,color:"#b89a6e"}}>—</span>{item}
-                      </div>
-                    ))}
+                    {n.items.map((item,ii)=><div key={ii} style={{fontSize:"0.78rem",color:"#5a3a2a",lineHeight:"1.6",paddingLeft:"1rem",position:"relative"}}><span style={{position:"absolute",left:0,color:"#b89a6e"}}>—</span>{item}</div>)}
                   </div>
                 ))}
+
+                {/* ── Responsables ── */}
                 {sec.responsables&&(
                   <div style={{padding:"0.8rem 1.1rem"}}>
                     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:"7px"}}>
-                      {sec.responsables.map((r,ri)=>(
-                        <div key={ri} style={{background:"#fdf8f4",border:"1px solid #f0e4dc",borderRadius:"8px",padding:"7px 10px"}}>
-                          <div style={{fontSize:"0.82rem",fontWeight:"600",color:"#2c1810",fontFamily:"'Playfair Display',serif"}}>{r.name}</div>
-                          <div style={{fontSize:"0.72rem",color:"#8b6355"}}>{r.role}</div>
-                        </div>
-                      ))}
+                      {sec.responsables.map((r,ri)=>{
+                        const isEditR=editing&&editing.type==="resp"&&editing.secId===sec.id&&editing.itemIdx===ri;
+                        return(
+                          <div key={ri}>
+                            <div style={{background:"#fdf8f4",border:"1px solid #f0e4dc",borderRadius:"8px",padding:"7px 10px",display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"4px"}}>
+                              <div>
+                                <div style={{fontSize:"0.82rem",fontWeight:"600",color:"#2c1810",fontFamily:"'Playfair Display',serif"}}>{r.name}</div>
+                                <div style={{fontSize:"0.72rem",color:"#8b6355"}}>{r.role}</div>
+                              </div>
+                              {canEdit&&editBtns(e=>openEditResp(sec.id,ri,e),e=>delResp(sec.id,ri,e))}
+                            </div>
+                            {isEditR&&(
+                              <InlineForm label="Modifier le responsable" onSave={saveResp}>
+                                <div><label style={lStyle}>Nom | Rôle (séparés par |)</label><input style={iStyle} value={itemForm} onChange={e=>setItemForm(e.target.value)} placeholder="Larissa | Wedding planner…"/></div>
+                              </InlineForm>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
+                    {editing&&editing.type==="newResp"&&editing.secId===sec.id&&(
+                      <InlineForm label="Nouveau responsable" onSave={saveResp}>
+                        <div><label style={lStyle}>Nom | Rôle (séparés par |)</label><input style={iStyle} value={itemForm} onChange={e=>setItemForm(e.target.value)} placeholder="Larissa | Wedding planner…"/></div>
+                      </InlineForm>
+                    )}
+                    {canEdit&&!(editing&&["newResp","resp"].includes(editing.type)&&editing.secId===sec.id)&&(
+                      <button onClick={e=>openNewResp(sec.id,e)} style={{...btnS,fontSize:"0.78rem",padding:"0.3rem 0.7rem",marginTop:"8px"}}>+ Responsable</button>
+                    )}
                   </div>
                 )}
+
+                {/* ── Checklist ── */}
                 {sec.checklist&&(
                   <div>
-                    <div style={{padding:"0.6rem 1.1rem 0.8rem",background:"#fdf8f4"}}>
-                      <div style={{fontSize:"10px",fontWeight:"700",letterSpacing:"0.1em",textTransform:"uppercase",color:"#b89a8e",marginBottom:"0.4rem"}}>À acheter — lundi 13 juillet</div>
-                      {sec.checklist.achats.map((item,i)=>(
-                        <div key={i} style={{fontSize:"0.78rem",color:"#5a3a2a",lineHeight:"1.6",paddingLeft:"1rem",position:"relative"}}>
-                          <span style={{position:"absolute",left:0,color:"#b89a6e"}}>—</span>{item}
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{padding:"0.6rem 1.1rem 0.8rem",background:"white",borderTop:"1px solid #f0e4dc"}}>
-                      <div style={{fontSize:"10px",fontWeight:"700",letterSpacing:"0.1em",textTransform:"uppercase",color:"#b89a8e",marginBottom:"0.4rem"}}>À confirmer avec les prestataires</div>
-                      {sec.checklist.confirmer.map((item,i)=>(
-                        <div key={i} style={{fontSize:"0.78rem",color:"#5a3a2a",lineHeight:"1.6",paddingLeft:"1rem",position:"relative"}}>
-                          <span style={{position:"absolute",left:0,color:"#b89a6e"}}>—</span>{item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* Nouvelle étape inline */}
-                {canEdit&&showNewEvModal===sec.id&&(
-                  <div style={{background:"#fdf8f4",border:"1.5px solid #c4755a",borderRadius:"10px",padding:"1rem",margin:"0.5rem 1.1rem 0.8rem",display:"flex",flexDirection:"column",gap:"0.8rem"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <span style={{fontSize:"0.78rem",fontWeight:"700",color:"#c4755a",textTransform:"uppercase",letterSpacing:"0.07em"}}>Nouvelle étape</span>
-                      <button onClick={e=>{e.stopPropagation();setShowNewEvModal(null);setEvForm(blankEv);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:"1.1rem",color:"#8b6355"}}>×</button>
-                    </div>
-                    <div><label style={lStyle}>Heure / Moment</label><input style={iStyle} value={evForm.time} onChange={e=>setEvForm({...evForm,time:e.target.value})} placeholder="Ex: 19h00, Pendant plat…"/></div>
-                    <div><label style={lStyle}>Titre *</label><input style={iStyle} value={evForm.title} onChange={e=>setEvForm({...evForm,title:e.target.value})} placeholder="Intitulé de l'étape…"/></div>
-                    <div><label style={lStyle}>Description</label><textarea style={{...iStyle,height:"60px",resize:"vertical"}} value={evForm.desc||""} onChange={e=>setEvForm({...evForm,desc:e.target.value})}/></div>
-                    <div>
-                      <label style={lStyle}>Personnes concernées</label>
-                      <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginTop:"4px",padding:"8px",background:"white",borderRadius:"8px",border:"1.5px solid #d9c9bf"}}>
-                        {allPersons.map(p=>{
-                          const sel=(evForm.persons||[]).includes(p);
-                          return <button key={p} onClick={e=>{e.stopPropagation();const cur=evForm.persons||[];setEvForm({...evForm,persons:sel?cur.filter(x=>x!==p):[...cur,p]});}} style={{fontSize:"11px",padding:"3px 10px",borderRadius:"12px",border:`1px solid ${sel?"#c4755a":"#d9c9bf"}`,background:sel?"#f5e8e0":"white",color:sel?"#c4755a":"#8b6355",cursor:"pointer",fontFamily:"'Lora',serif"}}>{p}</button>;
+                    {[{key:"achats",title:"À acheter — lundi 13 juillet",bg:"#fdf8f4"},{key:"confirmer",title:"À confirmer avec les prestataires",bg:"white"}].map(({key,title,bg})=>(
+                      <div key={key} style={{padding:"0.6rem 1.1rem 0.8rem",background:bg,borderTop:"1px solid #f0e4dc"}}>
+                        <div style={{fontSize:"10px",fontWeight:"700",letterSpacing:"0.1em",textTransform:"uppercase",color:"#b89a8e",marginBottom:"0.4rem"}}>{title}</div>
+                        {sec.checklist[key].map((item,i)=>{
+                          const isEditItem=editing&&editing.type==="item"&&editing.secId===sec.id&&editing.listType===key&&editing.itemIdx===i;
+                          return(
+                            <div key={i}>
+                              <div style={{display:"flex",alignItems:"center",paddingLeft:"1rem",position:"relative"}}>
+                                <span style={{position:"absolute",left:0,color:"#b89a6e"}}>—</span>
+                                <div style={{fontSize:"0.78rem",color:"#5a3a2a",lineHeight:"1.6",flex:1}}>{item}</div>
+                                {canEdit&&editBtns(e=>openEditItem(sec.id,key,i,e),e=>delItem(sec.id,key,i,e))}
+                              </div>
+                              {isEditItem&&(
+                                <InlineForm label="Modifier l'élément" onSave={()=>saveItem(key)}>
+                                  <input style={iStyle} value={itemForm} onChange={e=>setItemForm(e.target.value)}/>
+                                </InlineForm>
+                              )}
+                            </div>
+                          );
                         })}
+                        {editing&&editing.type==="newItem"&&editing.secId===sec.id&&editing.listType===key&&(
+                          <InlineForm label="Nouvel élément" onSave={()=>saveItem(key)}>
+                            <input style={iStyle} value={itemForm} onChange={e=>setItemForm(e.target.value)} placeholder="Nouvel élément…"/>
+                          </InlineForm>
+                        )}
+                        {canEdit&&!(editing&&["newItem","item"].includes(editing.type)&&editing.secId===sec.id&&editing.listType===key)&&(
+                          <button onClick={e=>openNewItem(sec.id,key,e)} style={{...btnS,fontSize:"0.78rem",padding:"0.3rem 0.7rem",marginTop:"6px"}}>+ Élément</button>
+                        )}
                       </div>
-                    </div>
-                    <div style={{display:"flex",gap:"0.6rem",justifyContent:"flex-end"}}>
-                      <button style={btnS} onClick={e=>{e.stopPropagation();setShowNewEvModal(null);setEvForm(blankEv);}}>Annuler</button>
-                      <button style={btnP} onClick={e=>{e.stopPropagation();saveEvent();}}>Enregistrer</button>
-                    </div>
+                    ))}
                   </div>
                 )}
+
               </div>
             )}
           </div>
         );
       })}
 
+      {/* Nouvelle section */}
+      {canEdit&&(
+        <div style={{marginTop:"0.5rem"}}>
+          {editing&&editing.type==="newSection"
+            ?<SecEditForm/>
+            :<button onClick={()=>setEditing({type:"newSection"})} style={{...btnS,width:"100%",textAlign:"center",fontSize:"0.82rem"}}>+ Nouvelle section</button>
+          }
+        </div>
+      )}
+
       {/* Legend */}
-      <div style={{display:"flex",gap:"12px",flexWrap:"wrap",justifyContent:"center",marginTop:"1rem",paddingTop:"1rem",borderTop:"1px solid #f0e4dc"}}>
+      <div style={{display:"flex",gap:"12px",flexWrap:"wrap",justifyContent:"center",marginTop:"1.5rem",paddingTop:"1rem",borderTop:"1px solid #f0e4dc"}}>
         {[["prestataire","Prestataire"],["responsable","Responsable"],["alert","Ne pas oublier"],["todo","À confirmer"]].map(([t,l])=>(
           <span key={t} style={tagStyle(t)}>{l}</span>
         ))}
@@ -1190,7 +1280,6 @@ function ProgrammeTab({canEdit,guests}){
     </div>
   );
 }
-
 
 function App(){
   const [role,setRole]=useState("guest");           // guest | weddingPlanner | admin
