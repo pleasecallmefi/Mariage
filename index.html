@@ -120,8 +120,10 @@ const initGuests = [
 ];
 
 const initRooms=[
-  {id:1,name:"Chambre bleue",location:"",beds:[{bedId:"b1-1",bedType:"Double",guests:["Anthony","Charlotte"]}]},
-  {id:2,name:"Chambre Elle",location:"",beds:[{bedId:"b2-1",bedType:"Double",guests:["Ryan"]}]},
+  {id:1,name:"Chambre bleue",location:"",beds:[
+    {bedId:"b1-1",bedType:"Double",guests:["Anthony","Charlotte"]}]},
+  {id:2,name:"Chambre Elle",location:"",beds:[
+    {bedId:"b2-1",bedType:"Double",guests:["Ryan"]}]},
   {id:3,name:"Gite Rive droite",location:"",beds:[
     {bedId:"b3-1",bedType:"Double",guests:["Miangaly","Nantenaina"]},
     {bedId:"b3-2",bedType:"Twin",guests:["Père Gaston"]},
@@ -132,15 +134,18 @@ const initRooms=[
     {bedId:"b4-2",bedType:"Twin",guests:["Toavina","Rasanda"]},
     {bedId:"b4-3",bedType:"Lit convertible",guests:["Tsiro"]},
   ]},
-  {id:5,name:"Suite du Lac",location:"",beds:[{bedId:"b5-1",bedType:"Double",guests:["Tinah","Toky"]}]},
-  {id:6,name:"Suite familiale",location:"",beds:[{bedId:"b6-1",bedType:"Double + Twin",guests:["Hayara"]}]},
+  {id:5,name:"Suite du Lac",location:"",beds:[
+    {bedId:"b5-1",bedType:"Double",guests:["Tinah","Toky"]}]},
+  {id:6,name:"Suite familiale",location:"",beds:[
+    {bedId:"b6-1",bedType:"Double",guests:["Alex","Anteh"]},
+    {bedId:"b6-2",bedType:"Twin",guests:["Salohy","Celin"]},
+  ]},
   {id:7,name:"Suite or",location:"",beds:[
-    {bedId:"b7-1",bedType:"Twin",guests:["Alex","Anteh"]},
-    {bedId:"b7-2",bedType:"Double",guests:["Salohy","Célin"]},
+    {bedId:"b7-1",bedType:"Double + Twin",guests:["Sitraka","Dadane","Mahe"]},
   ]},
   {id:8,name:"Suite vision",location:"",beds:[
-    {bedId:"b8-1",bedType:"Lit convertible → Double",note:"Lit convertible nuit 1, lit double nuit 2 — Ilo rejoint ce lit la 2ème nuit",night1:["Phrad","Haingotiana"],night2:["Phrad","Haingotiana","Ilo"]},
-    {bedId:"b8-2",bedType:"Lit convertible",note:"Ilo part sur l'autre lit la 2ème nuit",night1:["Ilo","Oliva"],night2:["Oliva"]},
+    {bedId:"b8-1",bedType:"Double",guests:["Phrad","Haingotiana","Ilo"]},
+    {bedId:"b8-2",bedType:"2 Lits convertibles",guests:["Ilo","Oliva"],
   ]},
 ];
 
