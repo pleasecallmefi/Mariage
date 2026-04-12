@@ -1251,10 +1251,273 @@ function ProgrammeTab({canEdit,guests,sections,setSections}){
   );
 }
 
+/* ══════════════════════════════════════════════════════════
+   DÉROULÉ — Tableau Google Sheets
+══════════════════════════════════════════════════════════ */
+const SECTION_COLORS={"Préparatifs":"#e8f5e9","Cérémonie":"#e8f4fd","Vin d'honneur":"#f3e8ff","Repas":"#fef3e2","Soirée":"#fce8f5","":"#f5f5f5"};
+const SHEET_CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vR36G_Ovaq6R3Gf4e8gb_G_gznXH7wz0IJgstfgZQvvFt_Dcq-0YzKXUITmEVa5TPypn8CtUkyQ7Xki/pub?gid=0&single=true&output=csv";
+const SHEET_EDIT_URL="https://docs.google.com/spreadsheets";
+
+function DeroulTab(){
+  const [rows,setRows]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState("");
+  const [filterName,setFilterName]=useState("all");
+
+  const parseCSV=(line)=>{
+    const result=[];let cur="";let inQ=false;
+    for(let i=0;i<line.length;i++){
+      if(line[i]==='"'){inQ=!inQ;}
+      else if(line[i]===","&&!inQ){result.push(cur.trim());cur="";}
+      else cur+=line[i];
+    }
+    result.push(cur.trim());
+    return result.map(s=>s.replace(/^"|"$/g,"").trim());
+  };
+
+  const fetchSheet=async()=>{
+    setLoading(true);setError("");
+    try{
+      const res=await fetch(SHEET_CSV_URL);
+      if(!res.ok)throw new Error("HTTP "+res.status);
+      const text=await res.text();
+      const lines=text.trim().split("\n");
+      if(lines.length<2){setError("Le sheet semble vide.");setLoading(false);return;}
+      const data=lines.slice(1).map(l=>parseCSV(l)).filter(r=>r[2]&&r[2].length>0);
+      setRows(data);
+    }catch(e){
+      setError("Impossible de charger le sheet. Vérifie que la feuille est bien publiée en CSV (Fichier → Partager → Publier sur le web → CSV).");
+    }
+    setLoading(false);
+  };
+
+  useEffect(()=>{fetchSheet();},[]);
+
+  const allNames=useMemo(()=>{
+    const names=new Set();
+    rows.forEach(r=>{if(r[3])r[3].split(",").forEach(n=>{const t=n.trim();if(t)names.add(t);});});
+    return[...names].sort();
+  },[rows]);
+
+  const filtered=useMemo(()=>{
+    if(filterName==="all")return rows;
+    return rows.filter(r=>r[3]&&r[3].split(",").map(n=>n.trim()).includes(filterName));
+  },[rows,filterName]);
+
+  const thS={padding:"0.55rem 0.8rem",textAlign:"left",fontSize:"11px",fontWeight:"700",letterSpacing:"0.08em",textTransform:"uppercase",color:"#8b6355",borderBottom:"2px solid #f0e4dc",background:"white",whiteSpace:"nowrap"};
+  const tdS={padding:"0.55rem 0.8rem",fontSize:"0.82rem",color:"#3d2010",verticalAlign:"top",borderBottom:"1px solid #f5ece6"};
+
+  return(
+    <div style={{fontFamily:"'Lora',serif"}}>
+      {/* Toolbar */}
+      <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"1.2rem",alignItems:"center"}}>
+        <select value={filterName} onChange={e=>setFilterName(e.target.value)}
+          style={{...iStyle,width:"auto",padding:"0.38rem 0.75rem",fontSize:"0.8rem"}}>
+          <option value="all">👥 Tout le monde</option>
+          {allNames.map(n=><option key={n} value={n}>{n}</option>)}
+        </select>
+        {filterName!=="all"&&(
+          <span style={{fontSize:"0.78rem",color:"#c4755a",fontStyle:"italic",fontFamily:"'Lora',serif"}}>
+            {filtered.length} étape{filtered.length>1?"s":""} pour {filterName}
+          </span>
+        )}
+        <div style={{marginLeft:"auto",display:"flex",gap:"6px",flexWrap:"wrap"}}>
+          <button onClick={fetchSheet} style={{...btnS,fontSize:"0.78rem",padding:"0.3rem 0.8rem"}}>↻ Actualiser</button>
+          <a href={SHEET_EDIT_URL} target="_blank" rel="noopener noreferrer"
+            style={{...btnS,fontSize:"0.78rem",padding:"0.3rem 0.8rem",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"4px"}}>
+            ✏️ Éditer le sheet ↗
+          </a>
+        </div>
+      </div>
+
+      {loading&&(
+        <div style={{textAlign:"center",padding:"3rem",color:"#b89a8e",fontStyle:"italic",fontFamily:"'Lora',serif"}}>
+          Chargement du programme…
+        </div>
+      )}
+
+      {error&&(
+        <div style={{background:"#fceaea",border:"1px solid #f0c0c0",borderRadius:"10px",padding:"1rem",fontSize:"0.82rem",color:"#903030",lineHeight:"1.6"}}>
+          ⚠ {error}
+        </div>
+      )}
+
+      {!loading&&rows.length>0&&(
+        <div style={{borderRadius:"12px",overflow:"hidden",border:"1.5px solid #f0e4dc"}}>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr>
+                  {["Heure","Section","Quoi","Qui","Détails"].map(h=><th key={h} style={thS}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((row,i)=>{
+                  const sec=row[1]||"";
+                  const bg=SECTION_COLORS[sec]||"white";
+                  const persons=(row[3]||"").split(",").map(n=>n.trim()).filter(Boolean);
+                  const isHL=filterName!=="all";
+                  return(
+                    <tr key={i} style={{background:isHL?"white":bg,transition:"background 0.1s"}}>
+                      <td style={{...tdS,fontWeight:"600",color:"#b89a6e",fontSize:"0.78rem",whiteSpace:"nowrap"}}>{row[0]}</td>
+                      <td style={{...tdS}}>
+                        <span style={{display:"inline-block",fontSize:"10px",fontWeight:"700",padding:"2px 8px",borderRadius:"8px",background:SECTION_COLORS[sec]||"#f0e4dc",color:"#5a3a2a",whiteSpace:"nowrap",border:"1px solid rgba(0,0,0,0.06)"}}>
+                          {sec}
+                        </span>
+                      </td>
+                      <td style={{...tdS,fontWeight:"600",fontFamily:"'Playfair Display',serif",fontSize:"0.88rem"}}>{row[2]}</td>
+                      <td style={{...tdS}}>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:"3px"}}>
+                          {persons.map(p=>(
+                            <span key={p} style={{
+                              fontSize:"10px",padding:"2px 7px",borderRadius:"8px",fontWeight:"600",
+                              background:p===filterName?"#f5e8e0":"#e8eef5",
+                              color:p===filterName?"#c4755a":"#456080",
+                              border:`1px solid ${p===filterName?"#c4755a":"#c0d0e0"}`
+                            }}>{p}</span>
+                          ))}
+                        </div>
+                      </td>
+                      <td style={{...tdS,fontSize:"0.78rem",color:"#6b4c3b"}}>{row[4]}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div style={{padding:"0.5rem 1rem",background:"#fdf8f4",borderTop:"1px solid #f0e4dc",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:"0.72rem",color:"#b89a8e",fontStyle:"italic"}}>
+              {filterName==="all"?`${rows.length} étapes au total`:`${filtered.length} étape${filtered.length>1?"s":""} pour ${filterName} sur ${rows.length}`}
+            </span>
+            <span style={{fontSize:"0.72rem",color:"#b89a8e"}}>↻ Données Google Sheets</span>
+          </div>
+        </div>
+      )}
+
+      {!loading&&!error&&rows.length===0&&(
+        <div style={{textAlign:"center",padding:"3rem",color:"#b89a8e",fontStyle:"italic"}}>
+          Aucune donnée trouvée. Vérifie que la feuille contient des lignes.
+        </div>
+      )}
+    </div>
+  );
+}
+  const [rows,setRows]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+  const [sheetId,setSheetId]=useState(()=>localStorage.getItem("deroul_sheet_id")||"");
+  const [sheetInput,setSheetInput]=useState("");
+  const [filterName,setFilterName]=useState("all");
+  const [configOpen,setConfigOpen]=useState(!localStorage.getItem("deroul_sheet_id"));
+
+  const parseCSV=(line)=>{const result=[];let cur="";let inQ=false;for(let i=0;i<line.length;i++){if(line[i]==='"'){inQ=!inQ;}else if(line[i]===","&&!inQ){result.push(cur.trim());cur="";}else cur+=line[i];}result.push(cur.trim());return result.map(s=>s.replace(/^"|"$/g,"").trim());};
+
+  const fetchSheet=async(id)=>{
+    if(!id)return;
+    setLoading(true);setError("");
+    try{
+      const url=`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv`;
+      const res=await fetch(url);
+      if(!res.ok)throw new Error("Impossible d'accéder au sheet");
+      const text=await res.text();
+      const lines=text.trim().split("\n");
+      if(lines.length<2){setError("Le sheet semble vide.");setLoading(false);return;}
+      setRows(lines.slice(1).map(l=>parseCSV(l)).filter(r=>r[2]));
+    }catch(e){setError("Erreur : "+e.message+". Vérifie que le sheet est publié en CSV.");}
+    setLoading(false);
+  };
+
+  useEffect(()=>{if(sheetId)fetchSheet(sheetId);},[sheetId]);
+
+  const saveSheetId=()=>{const id=sheetInput.trim();if(!id)return;localStorage.setItem("deroul_sheet_id",id);setSheetId(id);setConfigOpen(false);};
+
+  const allNames=useMemo(()=>{const names=new Set();rows.forEach(r=>{if(r[3])r[3].split(",").forEach(n=>names.add(n.trim()));});return[...names].filter(Boolean).sort();},[rows]);
+  const filtered=useMemo(()=>{if(filterName==="all")return rows;return rows.filter(r=>r[3]&&r[3].split(",").map(n=>n.trim()).includes(filterName));},[rows,filterName]);
+
+  const thS={padding:"0.5rem 0.75rem",textAlign:"left",fontSize:"11px",fontWeight:"700",letterSpacing:"0.08em",textTransform:"uppercase",color:"#8b6355",borderBottom:"2px solid #f0e4dc",background:"white",whiteSpace:"nowrap"};
+  const tdS={padding:"0.55rem 0.75rem",fontSize:"0.82rem",color:"#3d2010",verticalAlign:"top",borderBottom:"1px solid #f5ece6"};
+
+  return(
+    <div style={{fontFamily:"'Lora',serif"}}>
+      {(configOpen||!sheetId)&&(
+        <div style={{background:"#fdf8f4",border:"1.5px solid #c4755a",borderRadius:"10px",padding:"1.1rem",marginBottom:"1.5rem"}}>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1rem",color:"#2c1810",marginBottom:"0.5rem",fontWeight:"600"}}>🔗 Connecter un Google Sheets</div>
+          <div style={{fontSize:"0.8rem",color:"#8b6355",marginBottom:"0.9rem",lineHeight:"1.7"}}>
+            1. Crée un Google Sheets avec les colonnes en ligne 1 : <strong>Heure | Section | Quoi | Qui | Détails</strong><br/>
+            2. Colonne <strong>Qui</strong> : plusieurs noms séparés par des virgules (ex: <em>Safidy, Maxime</em>)<br/>
+            3. <strong>Fichier → Partager → Publier sur le web → Feuille 1 → CSV → Publier</strong><br/>
+            4. Copie l'ID depuis l'URL : <code style={{background:"#f0e4dc",padding:"1px 5px",borderRadius:"4px",fontSize:"0.75rem"}}>docs.google.com/spreadsheets/d/<strong>[ID ICI]</strong>/edit</code>
+          </div>
+          <div style={{display:"flex",gap:"0.6rem",flexWrap:"wrap"}}>
+            <input style={{...iStyle,flex:1,minWidth:"200px"}} value={sheetInput} onChange={e=>setSheetInput(e.target.value)} placeholder="Colle l'ID du Google Sheets ici…" onKeyDown={e=>e.key==="Enter"&&saveSheetId()}/>
+            <button style={btnP} onClick={saveSheetId}>Connecter</button>
+            {sheetId&&<button style={btnS} onClick={()=>setConfigOpen(false)}>Annuler</button>}
+          </div>
+        </div>
+      )}
+
+      {sheetId&&!configOpen&&(
+        <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"1.2rem",alignItems:"center"}}>
+          <select value={filterName} onChange={e=>setFilterName(e.target.value)} style={{...iStyle,width:"auto",padding:"0.38rem 0.75rem",fontSize:"0.8rem"}}>
+            <option value="all">👥 Tout le monde</option>
+            {allNames.map(n=><option key={n} value={n}>{n}</option>)}
+          </select>
+          {filterName!=="all"&&<span style={{fontSize:"0.78rem",color:"#c4755a",fontStyle:"italic"}}>{filtered.length} étape{filtered.length>1?"s":""} pour {filterName}</span>}
+          <div style={{marginLeft:"auto",display:"flex",gap:"6px",flexWrap:"wrap"}}>
+            <button onClick={()=>fetchSheet(sheetId)} style={{...btnS,fontSize:"0.78rem",padding:"0.3rem 0.8rem"}}>↻ Actualiser</button>
+            {canEdit&&<button onClick={()=>{setSheetInput(sheetId);setConfigOpen(true);}} style={{...btnS,fontSize:"0.78rem",padding:"0.3rem 0.8rem"}}>⚙ Modifier l'ID</button>}
+            <a href={`https://docs.google.com/spreadsheets/d/${sheetId}/edit`} target="_blank" rel="noopener noreferrer" style={{...btnS,fontSize:"0.78rem",padding:"0.3rem 0.8rem",textDecoration:"none",display:"inline-flex",alignItems:"center"}}>✏️ Éditer le sheet ↗</a>
+          </div>
+        </div>
+      )}
+
+      {loading&&<div style={{textAlign:"center",padding:"3rem",color:"#b89a8e",fontStyle:"italic"}}>Chargement…</div>}
+      {error&&<div style={{background:"#fceaea",border:"1px solid #f0c0c0",borderRadius:"8px",padding:"0.8rem 1rem",fontSize:"0.82rem",color:"#903030",marginBottom:"1rem"}}>{error}</div>}
+
+      {!loading&&rows.length>0&&(
+        <div style={{borderRadius:"12px",overflow:"hidden",border:"1.5px solid #f0e4dc"}}>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr>{["Heure","Section","Quoi","Qui","Détails"].map(h=><th key={h} style={thS}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {filtered.map((row,i)=>{
+                  const sec=row[1]||"";
+                  const bg=SECTION_COLORS[sec]||"white";
+                  const persons=(row[3]||"").split(",").map(n=>n.trim()).filter(Boolean);
+                  const isHL=filterName!=="all"&&persons.includes(filterName);
+                  return(
+                    <tr key={i} style={{background:isHL?"#fef9f0":bg}}>
+                      <td style={{...tdS,fontWeight:"600",color:"#b89a6e",fontSize:"0.78rem",whiteSpace:"nowrap",minWidth:"70px"}}>{row[0]}</td>
+                      <td style={{...tdS,minWidth:"90px"}}><span style={{display:"inline-block",fontSize:"10px",fontWeight:"700",padding:"2px 7px",borderRadius:"8px",background:"rgba(0,0,0,0.07)",color:"#5a3a2a",whiteSpace:"nowrap"}}>{sec}</span></td>
+                      <td style={{...tdS,fontWeight:"600",fontFamily:"'Playfair Display',serif",fontSize:"0.88rem",minWidth:"150px"}}>{row[2]}</td>
+                      <td style={{...tdS,minWidth:"120px"}}>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:"3px"}}>
+                          {persons.map(p=><span key={p} style={{fontSize:"10px",padding:"2px 7px",borderRadius:"8px",fontWeight:"600",background:p===filterName?"#f5e8e0":"#e8eef5",color:p===filterName?"#c4755a":"#456080",border:`1px solid ${p===filterName?"#c4755a":"#c0d0e0"}`}}>{p}</span>)}
+                        </div>
+                      </td>
+                      <td style={{...tdS,fontSize:"0.78rem",color:"#6b4c3b"}}>{row[4]}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div style={{padding:"0.5rem 1rem",background:"#fdf8f4",borderTop:"1px solid #f0e4dc",fontSize:"0.72rem",color:"#b89a8e",textAlign:"right"}}>
+            {filtered.length} ligne{filtered.length>1?"s":""} · Données depuis Google Sheets
+          </div>
+        </div>
+      )}
+
+      {!loading&&!error&&rows.length===0&&sheetId&&!configOpen&&(
+        <div style={{textAlign:"center",padding:"3rem",color:"#b89a8e",fontStyle:"italic"}}>Aucune donnée. Vérifie que le sheet est publié en CSV et contient des lignes.</div>
+      )}
+    </div>
+  );
+}
+
 function App(){
-  const [role,setRole]=useState("guest");
-  const [loginTarget,setLoginTarget]=useState(null);
-  const [tab,setTab]=useState("programme");
   const [tasks,setTasks]=useState(initTasks);
   const [providers,setProviders]=useState(initProviders);
   const [rooms,setRooms]=useState(initRooms);
@@ -1286,6 +1549,7 @@ function App(){
   // Tab list depends on role
   const tabs=[
     {id:"programme",label:"💒 Programme"},
+    {id:"deroul",label:"📋 Déroulé"},
     {id:"rooms",   label:"🏠 Chambres"},
     ...(canSeeProviders?[{id:"providers",label:"🤝 Prestataires"}]:[]),
     ...(canEditTasks?[{id:"guests",label:"👥 Personnes"}]:[]),
@@ -1363,6 +1627,7 @@ function App(){
       {/* Content */}
       <div style={{padding:"1.4rem",maxWidth:"960px",margin:"0 auto"}}>
         {tab==="programme"&&<ProgrammeTab canEdit={role==="admin"} guests={guests} sections={sections} setSections={s=>{setSections(s);lsSave("sections",s);}}/>}
+        {tab==="deroul"&&<DeroulTab/>}
         {tab==="rooms"&&<RoomsTab rooms={rooms} setRooms={setRooms} guests={guests} canEdit={canEditRooms}/>}
         {tab==="providers"&&canSeeProviders&&<ProvidersTab providers={providers} setProviders={setProviders} canEdit={canEditProviders}/>}
         {tab==="guests"&&canEditTasks&&<GuestsTab guests={guests} setGuests={setGuests}/>}
