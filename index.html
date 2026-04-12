@@ -86,19 +86,37 @@ const BED_ICONS ={"Double":"🛏","Twin":"🛏🛏","Lit convertible":"🛋","Do
 function bedGuests(bed,night){ if(bed.night1) return night===1?(bed.night1||[]):(bed.night2||[]); return bed.guests||[]; }
 
 /* ─── Initial data ──────────────────────────────────────── */
-const initGuests=[
-  {id:1,name:"Anthony",group:"Couple"},{id:2,name:"Charlotte",group:"Couple"},
-  {id:3,name:"Ryan",group:"Famille"},{id:4,name:"Miangaly",group:"Famille"},
-  {id:5,name:"Nantenaina",group:"Famille"},{id:6,name:"Père Gaston",group:"Famille"},
-  {id:7,name:"Andoniaina",group:"Famille"},{id:8,name:"Michèle",group:"Famille"},
-  {id:9,name:"Ando",group:"Famille"},{id:10,name:"Toavina",group:"Famille"},
-  {id:11,name:"Rasanda",group:"Famille"},{id:12,name:"Tsiro",group:"Famille"},
-  {id:13,name:"Tinah",group:"Famille"},{id:14,name:"Toky",group:"Famille"},
-  {id:15,name:"Hayara",group:"Famille"},{id:16,name:"Alex",group:"Amis"},
-  {id:17,name:"Anteh",group:"Amis"},{id:18,name:"Salohy",group:"Amis"},
-  {id:19,name:"Célin",group:"Amis"},{id:20,name:"Phrad",group:"Amis"},
-  {id:21,name:"Haingotiana",group:"Amis"},{id:22,name:"Ilo",group:"Amis"},
-  {id:23,name:"Oliva",group:"Amis"},
+const initGuests = [
+  { id: 1, name: "Safidy", category: "Couple" },
+  { id: 2, name: "Maxime", category: "Couple" },
+  { id: 3, name: "Haingotiana", category: "Invité" },
+  { id: 4, name: "Michèle", category: "Invité" },
+  { id: 5, name: "Toavina", category: "Invité" },
+  { id: 6, name: "Alexandra", category: "Invité" },
+  { id: 7, name: "Tsiro", category: "Invité" },
+  { id: 8, name: "Nanah", category: "Invité" },
+  { id: 9, name: "Miangaly", category: "Invité" },
+  { id: 10, name: "Tinah", category: "Témoin" },
+  { id: 11, name: "Toky", category: "Témoin" },
+  { id: 12, name: "Salohy", category: "Témoin" },
+  { id: 13, name: "Celin", category: "Témoin" },
+  { id: 14, name: "Phrad", category: "Invité" },
+  { id: 15, name: "Ando", category: "Invité" },
+  { id: 16, name: "Rasanda", category: "Invité" },
+  { id: 17, name: "Anteh", category: "Invité" },
+  { id: 18, name: "Oliva", category: "Invité" },
+  { id: 19, name: "Ilo", category: "Invité" },
+  { id: 20, name: "Nante", category: "Invité" },
+  { id: 21, name: "Anthony", category: "Témoin" },
+  { id: 22, name: "Charlotte", category: "Témoin" },
+  { id: 23, name: "Lara", category: "Témoin" },
+  { id: 24, name: "Ryan", category: "Témoin" },
+  { id: 25, name: "Père Gaston", category: "Invité" },
+  { id: 26, name: "Larissa", category: "Prestataire" },
+  { id: 27, name: "Photographe", category: "Prestataire" },
+  { id: 28, name: "Traiteur", category: "Prestataire" },
+  { id: 29, name: "Ines", category: "Prestataire" },
+  { id: 30, name: "Serveuse", category: "Prestataire" }
 ];
 
 const initRooms=[
