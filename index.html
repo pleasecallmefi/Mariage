@@ -1257,8 +1257,8 @@ function ProgrammeTab({canEdit,guests,sections,setSections}){
 const SECTION_COLORS={"Préparatifs":"#e8f5e9","Cérémonie":"#e8f4fd","Vin d'honneur":"#f3e8ff","Repas":"#fef3e2","Soirée":"#fce8f5","":"#f5f5f5"};
 const SHEET_CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vR36G_Ovaq6R3Gf4e8gb_G_gznXH7wz0IJgstfgZQvvFt_Dcq-0YzKXUITmEVa5TPypn8CtUkyQ7Xki/pub?gid=0&single=true&output=csv";
 // Extract the published sheet key for gviz query
-const SHEET_PUBLISHED_KEY="2PACX-1vR36G_Ovaq6R3Gf4e8gb_G_gznXH7wz0IJgstfgZQvvFt_Dcq-0YzKXUITmEVa5TPypn8CtUkyQ7Xki";
-const SHEET_EDIT_URL="https://docs.google.com/spreadsheets";
+const SHEET_PUBLISHED_KEY="1HJ83IIzkEXwju1U6_nKcdH8gE3x5EPAMZ2ivfVOSYb0";
+const SHEET_EDIT_URL="https://docs.google.com/spreadsheets/d/1HJ83IIzkEXwju1U6_nKcdH8gE3x5EPAMZ2ivfVOSYb0/edit";
 
 function DeroulTab(){
   const [rows,setRows]=useState([]);
@@ -1285,7 +1285,7 @@ function DeroulTab(){
       setLoading(false);
       delete window[cbName];
     };
-    const url=`https://docs.google.com/spreadsheets/d/e/${SHEET_PUBLISHED_KEY}/gviz/tq?tqx=out:json&tq=select+*&callback=${cbName}`;
+    const url=`https://docs.google.com/spreadsheets/d/${SHEET_PUBLISHED_KEY}/gviz/tq?tqx=out:json&tq=select+*&callback=${cbName}`;
     const script=document.createElement("script");
     script.id="gviz_script";
     script.src=url;
