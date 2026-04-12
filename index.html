@@ -1256,6 +1256,8 @@ function ProgrammeTab({canEdit,guests,sections,setSections}){
 ══════════════════════════════════════════════════════════ */
 const SECTION_COLORS={"Préparatifs":"#e8f5e9","Cérémonie":"#e8f4fd","Vin d'honneur":"#f3e8ff","Repas":"#fef3e2","Soirée":"#fce8f5","":"#f5f5f5"};
 const SHEET_CSV_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vR36G_Ovaq6R3Gf4e8gb_G_gznXH7wz0IJgstfgZQvvFt_Dcq-0YzKXUITmEVa5TPypn8CtUkyQ7Xki/pub?gid=0&single=true&output=csv";
+// Extract the published sheet key for gviz query
+const SHEET_PUBLISHED_KEY="2PACX-1vR36G_Ovaq6R3Gf4e8gb_G_gznXH7wz0IJgstfgZQvvFt_Dcq-0YzKXUITmEVa5TPypn8CtUkyQ7Xki";
 const SHEET_EDIT_URL="https://docs.google.com/spreadsheets";
 
 function DeroulTab(){
@@ -1264,31 +1266,31 @@ function DeroulTab(){
   const [error,setError]=useState("");
   const [filterName,setFilterName]=useState("all");
 
-  const parseCSV=(line)=>{
-    const result=[];let cur="";let inQ=false;
-    for(let i=0;i<line.length;i++){
-      if(line[i]==='"'){inQ=!inQ;}
-      else if(line[i]===","&&!inQ){result.push(cur.trim());cur="";}
-      else cur+=line[i];
-    }
-    result.push(cur.trim());
-    return result.map(s=>s.replace(/^"|"$/g,"").trim());
-  };
-
-  const fetchSheet=async()=>{
+  const fetchSheet=()=>{
     setLoading(true);setError("");
-    try{
-      const res=await fetch(SHEET_CSV_URL);
-      if(!res.ok)throw new Error("HTTP "+res.status);
-      const text=await res.text();
-      const lines=text.trim().split("\n");
-      if(lines.length<2){setError("Le sheet semble vide.");setLoading(false);return;}
-      const data=lines.slice(1).map(l=>parseCSV(l)).filter(r=>r[2]&&r[2].length>0);
-      setRows(data);
-    }catch(e){
-      setError("Impossible de charger le sheet. Vérifie que la feuille est bien publiée en CSV (Fichier → Partager → Publier sur le web → CSV).");
-    }
-    setLoading(false);
+    // Remove any previous script/callback
+    const old=document.getElementById("gviz_script");
+    if(old)old.remove();
+    const cbName="__gviz_cb_"+Date.now();
+    window[cbName]=(data)=>{
+      try{
+        const table=data.table;
+        if(!table||!table.rows){setError("Aucune donnée trouvée dans le sheet.");setLoading(false);return;}
+        // cols: 0=Heure,1=Section,2=Quoi,3=Qui,4=Détails
+        const parsed=table.rows.map(r=>
+          (r.c||[]).map(cell=>cell&&cell.v!=null?String(cell.v):"")
+        ).filter(r=>r[2]&&r[2].trim().length>0);
+        setRows(parsed);
+      }catch(e){setError("Erreur de lecture : "+e.message);}
+      setLoading(false);
+      delete window[cbName];
+    };
+    const url=`https://docs.google.com/spreadsheets/d/e/${SHEET_PUBLISHED_KEY}/gviz/tq?tqx=out:json&tq=select+*&callback=${cbName}`;
+    const script=document.createElement("script");
+    script.id="gviz_script";
+    script.src=url;
+    script.onerror=()=>{setError("Impossible de charger le sheet. Vérifie que la feuille est publiée.");setLoading(false);delete window[cbName];};
+    document.head.appendChild(script);
   };
 
   useEffect(()=>{fetchSheet();},[]);
