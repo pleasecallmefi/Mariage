@@ -22,7 +22,15 @@
     };
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-
+// FORCE LE REMPLISSAGE INITIAL SI VIDE
+get(ref(db, 'org')).then((snapshot) => {
+  if (!snapshot.exists()) {
+    set(ref(db, 'org/guests'), initGuests);
+    set(ref(db, 'org/tasks'), initTasks);
+    set(ref(db, 'org/rooms'), initRooms);
+    console.log("Base de données initialisée !");
+  }
+});
     // One setter per collection
     window._fb = {
       set: (path, data) => set(ref(db, path), data),
