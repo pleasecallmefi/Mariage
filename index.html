@@ -115,31 +115,33 @@ const initGuests=[
   {id:27,name:"Larissa",group:"Prestataire"},
 ];
 
-const initRooms=[
-  {id:1,name:"Chambre bleue",location:"",beds:[{bedId:"b1-1",bedType:"Double",guests:["Anthony","Charlotte"]}]},
-  {id:2,name:"Chambre Elle",location:"",beds:[{bedId:"b2-1",bedType:"Double",guests:["Ryan"]}]},
-  {id:3,name:"Gite Rive droite",location:"",beds:[
-    {bedId:"b3-1",bedType:"Double",guests:["Miangaly","Nantenaina"]},
-    {bedId:"b3-2",bedType:"Twin",guests:["Père Gaston"]},
-    {bedId:"b3-3",bedType:"Lit convertible",guests:["Andoniaina"]},
-  ]},
-  {id:4,name:"Gite Rive Gauche",location:"",beds:[
-    {bedId:"b4-1",bedType:"Double",guests:["Michèle","Ando"]},
-    {bedId:"b4-2",bedType:"Twin",guests:["Toavina","Rasanda"]},
-    {bedId:"b4-3",bedType:"Lit convertible",guests:["Tsiro"]},
-  ]},
-  {id:5,name:"Suite du Lac",location:"",beds:[{bedId:"b5-1",bedType:"Double",guests:["Tinah","Toky"]}]},
-  {id:6,name:"Suite or",location:"",beds:[{bedId:"b6-1",bedType:"Double + Twin",guests:["Hayara"]}]},
-  {id:7,name:"Suite familiale",location:"",beds:[
-    {bedId:"b7-1",bedType:"Double",guests:["Alex","Anteh"]},
-    {bedId:"b7-2",bedType:"Twin",guests:["Salohy","Célin"]},
-  ]},
-  {id:8,name:"Suite vision",location:"",beds:[
-    {bedId:"b8-1",bedType:"Double",guests:["Phrad","Haingotiana"]},
-    {bedId:"b8-2",bedType:"Lit convertible",guests:["Ilo","Oliva"]},
-  ]},
-];
-
+const initRooms = [
+      {id:1,name:"Chambre bleue",beds:[{bedId:"b1-1",bedType:"Double",night1:["Anthony","Charlotte"],night2:["Anthony","Charlotte"]}]},
+      {id:2,name:"Chambre Elle",beds:[{bedId:"b2-1",bedType:"Double",night1:["Ryan", "Lara"],night2:["Ryan", "Lara"]}]},
+      {id:3,name:"Gite Rive droite",beds:[
+        {bedId:"b3-1",bedType:"Double",night1:["Miangaly","Nantenaina"],night2:["Miangaly","Nantenaina"]},
+        {bedId:"b3-2",bedType:"Twin",night1:["Père Gaston"],night2:["Père Gaston"]},
+        {bedId:"b3-3",bedType:"Lit convertible",night1:["Andoniaina"],night2:["Andoniaina"]}
+      ]},
+      {id:4,name:"Gite Rive Gauche",beds:[
+        {bedId:"b4-1",bedType:"Double",night1:["Michèle","Ando"],night2:["Michèle","Ando"]},
+        {bedId:"b4-2",bedType:"Twin",night1:["Toavina","Rasanda"],night2:["Toavina","Rasanda"]},
+        {bedId:"b4-3",bedType:"Lit convertible",night1:["Tsiro"],night2:["Tsiro"]}
+      ]},
+      {id:5,name:"Suite du Lac",beds:[{bedId:"b5-1",bedType:"Double",night1:["Tinah","Toky"],night2:["Tinah","Toky"]}]},
+      {id:6,name:"Suite or",beds:[
+          {bedId:"b6-1",bedType:"Double",night1:["Poun","Phrad"],night2:["Hayara"]},
+            {bedId:"b6-2",bedType:"Twin",night1:["Ilo","Oliva"],night2:["Hayara"]},
+      ]},
+      {id:7,name:"Suite familiale",beds:[
+        {bedId:"b7-1",bedType:"Double",night1:["Alex","Anteh"],night2:["Alex","Anteh"]},
+        {bedId:"b7-2",bedType:"Twin",night1:["Salohy","Célin"],night2:["Salohy","Célin"]}
+      ]},
+      {id:8,name:"Suite vision",beds:[
+        {bedId:"b8-1",bedType:"Double",night1:["Maxime"],night2:["Phrad","Haingotiana"]},
+        {bedId:"b8-2",bedType:"Lit convertible",night1:[""],night2:["Ilo","Oliva"]}
+      ]}
+    ];
 const initTasks=[
   {id:1,title:"Arrivée des invités",assignee:"Anthony",category:"Organisation",status:"todo",note:"",date:"2026-07-14",startTime:"15:00",endTime:"18:00",location:"Entrée du domaine"},
   {id:2,title:"Dîner de répétition",assignee:"Michèle",category:"Traiteur",status:"todo",note:"",date:"2026-07-14",startTime:"19:30",endTime:"22:30",location:"Salle principale"},
