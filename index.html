@@ -142,6 +142,19 @@ const initRooms = [
         {bedId:"b8-2",bedType:"Lit convertible",night1:[""],night2:["Ilo","Oliva"]}
       ]}
     ];
+  // Fonction pour envoyer les données vers Firebase
+const pushInitialData = () => {
+  if (window._fb) {
+    window._fb.set("org/rooms", initRooms)
+      .then(() => alert("Données envoyées avec succès !"))
+      .catch(err => console.error("Erreur :", err));
+  } else {
+    alert("Firebase n'est pas encore prêt.");
+  }
+};
+
+// Appelez cette fonction une seule fois (ou via un bouton temporaire)
+// pushInitialData();
 const initTasks=[
   {id:1,title:"Arrivée des invités",assignee:"Anthony",category:"Organisation",status:"todo",note:"",date:"2026-07-14",startTime:"15:00",endTime:"18:00",location:"Entrée du domaine"},
   {id:2,title:"Dîner de répétition",assignee:"Michèle",category:"Traiteur",status:"todo",note:"",date:"2026-07-14",startTime:"19:30",endTime:"22:30",location:"Salle principale"},
