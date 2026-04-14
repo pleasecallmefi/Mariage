@@ -115,6 +115,9 @@ const initGuests=[
   {id:27,name:"Larissa",group:"Prestataire"},
 ];
 
+/* ─── Initial data ──────────────────────────────────────── */
+// ... gardez initGuests tel quel ...
+
 const initRooms = [
   {
     id: 1,
@@ -179,6 +182,10 @@ const initRooms = [
     ]
   }
 ];
+
+// IMPORTANT : Pour mettre à jour votre base de données Firebase avec ces nouvelles chambres,
+// décommentez la ligne suivante, chargez la page une fois, puis re-commentez la.
+// pushInitialData();
   // Fonction pour envoyer les données vers Firebase
 const pushInitialData = () => {
   if (window._fb) {
