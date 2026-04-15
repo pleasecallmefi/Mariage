@@ -652,14 +652,14 @@ function RoomsTab({rooms,setRooms,guests,canEdit}){
 /* ══════════════════════════════════════════════════════════
    GUESTS TAB
 ══════════════════════════════════════════════════════════ */
-const GROUPS=["Couple","Famille","Témoin","Amis","Prestataire","Autre"];
-const GROUP_COLORS={"Couple":"#fce8f5","Famille":"#e8f4fd","Témoin":"#fff0f0","Amis":"#e8f5e9","Prestataire":"#fef3e2","Autre":"#f5f5f5"};
-const GROUP_DOTS={"Couple":"#d45c9b","Famille":"#5b9ec9","Témoin":"#c4755a","Amis":"#3a9d5d","Prestataire":"#e6a020","Autre":"#999"};
+const GROUPS=["Couple","Invité","Témoin","Amis","Prestataire","Autre"];
+const GROUP_COLORS={"Couple":"#fce8f5","Invité":"#e8f4fd","Témoin":"#fff0f0","Amis":"#e8f5e9","Prestataire":"#fef3e2","Autre":"#f5f5f5"};
+const GROUP_DOTS={"Couple":"#d45c9b","Invité":"#5b9ec9","Témoin":"#c4755a","Amis":"#3a9d5d","Prestataire":"#e6a020","Autre":"#999"};
 
 function GuestsTab({guests,setGuests}){
   const [showModal,setShowModal]=useState(false);
   const [editG,setEditG]=useState(null);
-  const blank={name:"",group:"Famille"};
+  const blank={name:"",group:"Invité"};
   const [form,setForm]=useState(blank);
   const [search,setSearch]=useState("");
   const [filterGroup,setFilterGroup]=useState("all");
