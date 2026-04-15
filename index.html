@@ -81,14 +81,14 @@ const CAT_COLORS = {
 const catColor = (cat) => CAT_COLORS[cat] || CAT_COLORS["Autre"];
 
 /* ─── BED helpers ───────────────────────────────────────── */
-const BED_COLORS={"Double":"#e8f4fd","Twin":"#fff0f0","Lit convertible":"#fafae8","Double + Twin":"#fce8f5","Lit convertible → Double":"#f0eeff"};
-const BED_ICONS ={"Double":"🛏","Twin":"🛏🛏","Lit convertible":"🛋","Double + Twin":"🛏 + 🛋","Lit convertible → Double":"🛋 → 🛏"};
+const BED_COLORS={"Double":"#e8f4fd","Twin":"#fff0f0","Lit convertible":"#fafae8"};
+const BED_ICONS ={"Double":"🛏","Twin":"🛏🛏","Lit convertible":"🛋"};
 function bedGuests(bed,night){ if(bed.night1) return night===1?(bed.night1||[]):(bed.night2||[]); return bed.guests||[]; }
 
 /* ─── Initial data ──────────────────────────────────────── */
 const initGuests=[
   {id:1,name:"Anthony",group:"Couple"},{id:2,name:"Charlotte",group:"Couple"},
-  {id:3,name:"Ryan",group:"Famille"},{id:4,name:"Miangaly",group:"Famille"},
+  {id:3,name:"Ryan",group:"Invité"},{id:4,name:"Miangaly",group:"Famille"},
   {id:5,name:"Nantenaina",group:"Famille"},{id:6,name:"Père Gaston",group:"Famille"},
   {id:7,name:"Andoniaina",group:"Famille"},{id:8,name:"Michèle",group:"Famille"},
   {id:9,name:"Ando",group:"Famille"},{id:10,name:"Toavina",group:"Famille"},
@@ -99,31 +99,6 @@ const initGuests=[
   {id:19,name:"Célin",group:"Amis"},{id:20,name:"Phrad",group:"Amis"},
   {id:21,name:"Haingotiana",group:"Amis"},{id:22,name:"Ilo",group:"Amis"},
   {id:23,name:"Oliva",group:"Amis"},
-];
-
-const initRooms=[
-  {id:1,name:"Chambre bleue",location:"",beds:[{bedId:"b1-1",bedType:"Double",guests:["Anthony","Charlotte"]}]},
-  {id:2,name:"Chambre Elle",location:"",beds:[{bedId:"b2-1",bedType:"Double",guests:["Ryan"]}]},
-  {id:3,name:"Gite Rive droite",location:"",beds:[
-    {bedId:"b3-1",bedType:"Double",guests:["Miangaly","Nantenaina"]},
-    {bedId:"b3-2",bedType:"Twin",guests:["Père Gaston"]},
-    {bedId:"b3-3",bedType:"Lit convertible",guests:["Andoniaina"]},
-  ]},
-  {id:4,name:"Gite Rive Gauche",location:"",beds:[
-    {bedId:"b4-1",bedType:"Double",guests:["Michèle","Ando"]},
-    {bedId:"b4-2",bedType:"Twin",guests:["Toavina","Rasanda"]},
-    {bedId:"b4-3",bedType:"Lit convertible",guests:["Tsiro"]},
-  ]},
-  {id:5,name:"Suite du Lac",location:"",beds:[{bedId:"b5-1",bedType:"Double",guests:["Tinah","Toky"]}]},
-  {id:6,name:"Suite familiale",location:"",beds:[{bedId:"b6-1",bedType:"Double + Twin",guests:["Hayara"]}]},
-  {id:7,name:"Suite or",location:"",beds:[
-    {bedId:"b7-1",bedType:"Twin",guests:["Alex","Anteh"]},
-    {bedId:"b7-2",bedType:"Double",guests:["Salohy","Célin"]},
-  ]},
-  {id:8,name:"Suite vision",location:"",beds:[
-    {bedId:"b8-1",bedType:"Lit convertible → Double",note:"Lit convertible nuit 1, lit double nuit 2 — Ilo rejoint ce lit la 2ème nuit",night1:["Phrad","Haingotiana"],night2:["Phrad","Haingotiana","Ilo"]},
-    {bedId:"b8-2",bedType:"Lit convertible",note:"Ilo part sur l'autre lit la 2ème nuit",night1:["Ilo","Oliva"],night2:["Oliva"]},
-  ]},
 ];
 
 const initTasks=[
