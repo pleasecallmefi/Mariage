@@ -87,42 +87,18 @@ function bedGuests(bed,night){ if(bed.night1) return night===1?(bed.night1||[]):
 
 /* ─── Initial data ──────────────────────────────────────── */
 const initGuests=[
-  {id:1,name:"Anthony",group:"Couple"},{id:2,name:"Charlotte",group:"Couple"},
-  {id:3,name:"Ryan",group:"Invité"},{id:4,name:"Miangaly",group:"Famille"},
-  {id:5,name:"Nantenaina",group:"Famille"},{id:6,name:"Père Gaston",group:"Famille"},
-  {id:7,name:"Andoniaina",group:"Famille"},{id:8,name:"Michèle",group:"Famille"},
-  {id:9,name:"Ando",group:"Famille"},{id:10,name:"Toavina",group:"Famille"},
-  {id:11,name:"Rasanda",group:"Famille"},{id:12,name:"Tsiro",group:"Famille"},
-  {id:13,name:"Tinah",group:"Famille"},{id:14,name:"Toky",group:"Famille"},
-  {id:15,name:"Hayara",group:"Famille"},{id:16,name:"Alex",group:"Amis"},
-  {id:17,name:"Anteh",group:"Amis"},{id:18,name:"Salohy",group:"Amis"},
-  {id:19,name:"Célin",group:"Amis"},{id:20,name:"Phrad",group:"Amis"},
-  {id:21,name:"Haingotiana",group:"Amis"},{id:22,name:"Ilo",group:"Amis"},
-  {id:23,name:"Oliva",group:"Amis"},
+
+];
+
+  const initRooms=[
 ];
 
 const initTasks=[
-  {id:1,title:"Arrivée des invités",assignee:"Anthony",category:"Organisation",status:"todo",note:"",date:"2026-07-14",startTime:"15:00",endTime:"18:00",location:"Entrée du domaine"},
-  {id:2,title:"Dîner de répétition",assignee:"Michèle",category:"Traiteur",status:"todo",note:"",date:"2026-07-14",startTime:"19:30",endTime:"22:30",location:"Salle principale"},
-  {id:3,title:"Préparatifs mariée",assignee:"Charlotte",category:"Organisation",status:"todo",note:"",date:"2026-07-15",startTime:"09:00",endTime:"12:00",location:"Suite du Lac"},
-  {id:4,title:"Cérémonie",assignee:"Anthony",category:"Lieu",status:"todo",note:"",date:"2026-07-15",startTime:"14:00",endTime:"15:30",location:"Chapelle"},
-  {id:5,title:"Cocktail",assignee:"Hayara",category:"Décoration",status:"todo",note:"Décoration florale",date:"2026-07-15",startTime:"15:30",endTime:"18:00",location:"Terrasse"},
-  {id:6,title:"Dîner & Soirée",assignee:"Michèle",category:"Traiteur",status:"todo",note:"",date:"2026-07-15",startTime:"19:00",endTime:"23:59",location:"Salle de réception"},
 ];
 // Deep clone helper — évite que les tâches partagent des références
 function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
 
 const initProviders=[
-  {id:1, name:"Pastoune",            category:"Traiteur / Restauration",   contact:"",email:"",note:"Foodtruck traiteur", status:"confirmed"},
-  {id:2, name:"OHA",                 category:"Photographe / Vidéaste",    contact:"",email:"",note:"",                  status:"confirmed"},
-  {id:3, name:"Ingénieuse création", category:"Fleuriste / Décoration",    contact:"",email:"",note:"Fleuriste",          status:"confirmed"},
-  {id:4, name:"Erigoye",             category:"Lieu / Salle de réception", contact:"",email:"",note:"Salle de réception", status:"confirmed"},
-  {id:5, name:"Ines",                category:"Illustratrice",             contact:"",email:"",note:"Illustratrice",      status:"confirmed"},
-  {id:6, name:"Larissa",             category:"Wedding Planner",           contact:"",email:"",note:"Wedding planner",    status:"confirmed"},
-  {id:7, name:"DJ",                  category:"Animation",                 contact:"",email:"",note:"",                  status:"confirmed"},
-  {id:8, name:"Animateur",           category:"Animation",                 contact:"",email:"",note:"",                  status:"confirmed"},
-  {id:9, name:"Gateau",              category:"Traiteur / Restauration",   contact:"",email:"",note:"",                  status:"confirmed"},
-  {id:10,name:"Happy days",          category:"Autre",                     contact:"",email:"",note:"Vaisselle",          status:"inprogress"},
 ];
 
 /* ─── Shared styles ─────────────────────────────────────── */
