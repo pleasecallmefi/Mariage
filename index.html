@@ -160,18 +160,8 @@ function LoginOverlay({targetRole,onSuccess,onCancel}){
 function TasksTab({tasks,setTasks,guests,canEdit}){
   const [showModal,setShowModal]=useState(false);
   const [editT,setEditT]=useState(null);
-  const getBlank = () => ({
-  title:"",
-  assignee:"",
-  category:"Organisation",
-  status:"todo",
-  note:"",
-  date:"2026-07-15",
-  startTime:"09:00",
-  endTime:"10:00",
-  location:""
-});
- const [form,setForm]=useState(getBlank());
+  const blank={title:"",assignee:"",category:"Organisation",status:"todo",note:"",date:"2026-07-15",startTime:"09:00",endTime:"10:00",location:""};
+  const [form,setForm]=useState(blank);
   const [filterDate,setFilterDate]=useState("all");
   const [filterPerson,setFilterPerson]=useState("all");
   // Toutes les tâches sont dépliées par défaut — Set des IDs repliés
@@ -179,12 +169,7 @@ function TasksTab({tasks,setTasks,guests,canEdit}){
   const cats=["Organisation","Traiteur","Photographe","Fleuriste","Décoration","Lieu","Illustratrice","Autre"];
   const people=[...new Set(guests.map(g=>g.name))].sort();
 
-  const openNew=()=>{
-  if(!canEdit)return;
-  setEditT(null);
-  setForm(getBlank());
-  setShowModal(true);
-};
+  const openNew=()=>{if(!canEdit)return;setEditT(null);setForm(deepClone(blank));setShowModal(true);};
   // Deep clone pour éviter que la modification du formulaire impacte la tâche originale
   const openEdit=(t,e)=>{e.stopPropagation();if(!canEdit)return;setEditT(t);setForm(deepClone(t));setShowModal(true);};
   const saveFn=()=>{
@@ -400,33 +385,17 @@ function ProvidersTab({providers,setProviders,canEdit}){
   const [showModal,setShowModal]=useState(false);
   const [editP,setEditP]=useState(null);
   const blank={name:"",category:"Traiteur / Restauration",contact:"",email:"",note:"",status:"pending"};
- const [form,setForm]=useState(getBlank());
+  const [form,setForm]=useState(blank);
   const cats=["Traiteur / Restauration","Photographe / Vidéaste","Fleuriste / Décoration","Lieu / Salle de réception","Illustratrice","Wedding Planner","Animation","Autre"];
   const catIcon={"Traiteur / Restauration":"🍽","Photographe / Vidéaste":"📷","Fleuriste / Décoration":"🌸","Lieu / Salle de réception":"🏰","Illustratrice":"🎨","Wedding Planner":"💼","Animation":"🎵","Autre":"✨"};
 
-  const openNew=()=>{
-  if(!canEdit)return;
-  setEditT(null);
-  setForm(getBlank());
-  setShowModal(true);
-};
+  const openNew=()=>{if(!canEdit)return;setEditP(null);setForm(blank);setShowModal(true);};
   const openEdit=(p)=>{if(!canEdit)return;setEditP(p);setForm({...p});setShowModal(true);};
   const saveFn=()=>{
-  if(!form.title.trim())return;
-
-  const newTask = JSON.parse(JSON.stringify({
-    ...form,
-    id: editT ? editT.id : Date.now()
-  }));
-
-  const updated = editT
-    ? tasks.map(t => t.id === editT.id ? newTask : t)
-    : [...tasks, newTask];
-
-  setTasks(updated);
-  lsSave(KEYS.tasks,updated);
-  setShowModal(false);
-};
+    if(!form.name.trim())return;
+    const updated=editP?providers.map(p=>p.id===editP.id?{...form,id:editP.id}:p):[...providers,{...form,id:Date.now()}];
+    setProviders(updated);lsSave(KEYS.providers,updated);setShowModal(false);
+  };
   const del=(id)=>{const u=providers.filter(p=>p.id!==id);setProviders(u);lsSave(KEYS.providers,u);};
 
   return (
@@ -695,11 +664,7 @@ function GuestsTab({guests,setGuests}){
   const [search,setSearch]=useState("");
   const [filterGroup,setFilterGroup]=useState("all");
 
-  const openNew = () => {
-  setEditT(null);
-  setForm(deepClone(blank));
-  setShowModal(true);
-};
+  const openNew=()=>{setEditG(null);setForm(blank);setShowModal(true);};
   const openEdit=(g)=>{setEditG(g);setForm({name:g.name,group:g.group});setShowModal(true);};
   const saveFn=()=>{
     if(!form.name.trim())return;
