@@ -43,9 +43,13 @@
   </style>
 </head>
 <body>
-<div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo } = React;
+
+// ✅ AJOUTE ÇA ICI
+function uid() {
+  return crypto.randomUUID();
+}
 
 /* ─── Roles & Passwords ───────────────────────────────────
    guest       : no password  → tasks (read) + rooms (read)
@@ -172,13 +176,22 @@ function TasksTab({tasks,setTasks,guests,canEdit}){
   const openNew=()=>{if(!canEdit)return;setEditT(null);setForm(deepClone(blank));setShowModal(true);};
   // Deep clone pour éviter que la modification du formulaire impacte la tâche originale
   const openEdit=(t,e)=>{e.stopPropagation();if(!canEdit)return;setEditT(t);setForm(deepClone(t));setShowModal(true);};
-  const saveFn=()=>{
-    if(!form.title.trim())return;
-    const updated=editT
-      ? tasks.map(t=>t.id===editT.id ? deepClone({...form,id:editT.id}) : t)
-      : [...tasks,deepClone({...form,id:Date.now()})];
-    setTasks(updated);lsSave(KEYS.tasks,updated);setShowModal(false);
+const saveFn = () => {
+  if (!form.title.trim()) return;
+
+  const newTask = {
+    ...form,
+    id: editT?.id || uid()
   };
+
+  const updated = editT
+    ? tasks.map(t => t.id === editT.id ? newTask : t)
+    : [...tasks, newTask];
+
+  setTasks(updated);
+  lsSave(KEYS.tasks, updated);
+  setShowModal(false);
+};
   const del=(id,e)=>{e.stopPropagation();const u=tasks.filter(t=>t.id!==id);setTasks(u);lsSave(KEYS.tasks,u);};
   const cycleStatus=(task,e)=>{e.stopPropagation();const c={todo:"inprogress",inprogress:"done",done:"todo"};const u=tasks.map(t=>t.id===task.id?{...t,status:c[t.status]}:t);setTasks(u);lsSave(KEYS.tasks,u);};
   const toggleCollapse=(id)=>setCollapsedIds(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n;});
@@ -390,11 +403,22 @@ function ProvidersTab({providers,setProviders,canEdit}){
 
   const openNew=()=>{if(!canEdit)return;setEditP(null);setForm(blank);setShowModal(true);};
   const openEdit=(p)=>{if(!canEdit)return;setEditP(p);setForm({...p});setShowModal(true);};
-  const saveFn=()=>{
-    if(!form.name.trim())return;
-    const updated=editP?providers.map(p=>p.id===editP.id?{...form,id:editP.id}:p):[...providers,{...form,id:Date.now()}];
-    setProviders(updated);lsSave(KEYS.providers,updated);setShowModal(false);
+const saveFn = () => {
+  if (!form.title.trim()) return;
+
+  const newTask = {
+    ...form,
+    id: editT?.id || uid()
   };
+
+  const updated = editT
+    ? tasks.map(t => t.id === editT.id ? newTask : t)
+    : [...tasks, newTask];
+
+  setTasks(updated);
+  lsSave(KEYS.tasks, updated);
+  setShowModal(false);
+};
   const del=(id)=>{const u=providers.filter(p=>p.id!==id);setProviders(u);lsSave(KEYS.providers,u);};
 
   return (
@@ -785,22 +809,17 @@ function App(){
   const [tables,setTables]=useState(()=>[]);
   const [loaded,setLoaded]=useState(false);
 
-  useEffect(()=>{
-    function attachListeners() {
-      // Compte combien de listeners ont répondu avant d'afficher
-      let ready=0;
-      const check=()=>{ready++;if(ready>=4)setLoaded(true);};
-      window._fb.listen("org/tasks",    v => { if(v){ const d=Array.isArray(v)?v:Object.values(v); if(d.length>0)setTasks(d); } check(); });
-      window._fb.listen("org/providers",v => { if(v){ const d=Array.isArray(v)?v:Object.values(v); if(d.length>0)setProviders(d); } check(); });
-      window._fb.listen("org/rooms",    v => { if(v){ const d=Array.isArray(v)?v:Object.values(v); if(d.length>0)setRooms(d); } check(); });
-      window._fb.listen("org/guests",   v => { if(v){ const d=Array.isArray(v)?v:Object.values(v); if(d.length>0)setGuests(d); } check(); });
-    }
-    if(window._fbReady){ attachListeners(); }
-    else { window.addEventListener('fbReady', attachListeners, {once:true}); }
-    // Timeout de sécurité : si Firebase ne répond pas en 5s, on charge quand même
-    const t=setTimeout(()=>setLoaded(true),5000);
-    return ()=>clearTimeout(t);
-  },[]);
+useEffect(() => {
+  if (!tasks.length) return;
+
+  const fixed = tasks.map(t => ({
+    ...t,
+    id: t.id || crypto.randomUUID()
+  }));
+
+  setTasks(fixed);
+  lsSave(KEYS.tasks, fixed);
+}, []);
 
   const daysLeft=Math.ceil((new Date("2026-07-15")-new Date())/86400000);
 
