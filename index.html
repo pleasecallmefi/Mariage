@@ -75,130 +75,57 @@ const CAT_COLORS = {
   "Fleuriste":    { bg:"#fce8f5", border:"#d45c9b", dot:"#d45c9b" },
   "Décoration":   { bg:"#e8f5e9", border:"#3a9d5d", dot:"#3a9d5d" },
   "Lieu":         { bg:"#fff0e8", border:"#c4755a", dot:"#c4755a" },
+  "Illustratrice":{ bg:"#f0f8e8", border:"#7ab648", dot:"#7ab648" },
   "Autre":        { bg:"#f5f5f5", border:"#999",    dot:"#999"    },
 };
 const catColor = (cat) => CAT_COLORS[cat] || CAT_COLORS["Autre"];
 
 /* ─── BED helpers ───────────────────────────────────────── */
 const BED_COLORS={"Double":"#e8f4fd","Twin":"#fff0f0","Lit convertible":"#fafae8","Double + Twin":"#fce8f5","Lit convertible → Double":"#f0eeff"};
-const BED_ICONS ={"Double":"🛏","Twin":"🛏🛏","Lit convertible":"🛋","Double + Twin":"🛏 + 🛏🛏","Lit convertible":"🛋"};
+const BED_ICONS ={"Double":"🛏","Twin":"🛏🛏","Lit convertible":"🛋","Double + Twin":"🛏 + 🛋","Lit convertible → Double":"🛋 → 🛏"};
 function bedGuests(bed,night){ if(bed.night1) return night===1?(bed.night1||[]):(bed.night2||[]); return bed.guests||[]; }
 
 /* ─── Initial data ──────────────────────────────────────── */
 const initGuests=[
-  {id:1,name:"Safidy",group:"Couple"},
-  {id:2,name:"Maxime",group:"Couple"},
-  {id:26,name:"Lara",group:"Témoins"},
-  {id:3,name:"Ryan",group:"Témoins"},
-  {id:4,name:"Miangaly",group:"Invité"},
-  {id:5,name:"Nantenaina",group:"Invité"},
-  {id:6,name:"Père Gaston",group:"Invité"},
-  {id:7,name:"Andoniaina",group:"Invité"},
-  {id:8,name:"Michèle",group:"Invité"},
-  {id:9,name:"Ando",group:"Invité"},
-  {id:10,name:"Toavina",group:"Invité"},
-  {id:11,name:"Rasanda",group:"Invité"},
-  {id:12,name:"Tsiro",group:"Invité"},
-  {id:13,name:"Tinah",group:"Témoins"},
-  {id:14,name:"Toky",group:"Témoins"},
-  {id:15,name:"Hayara",group:"Prestataire"},
-  {id:16,name:"Alex",group:"Invité"},
-  {id:17,name:"Anteh",group:"Invité"},
-  {id:18,name:"Salohy",group:"Témoins"},
-  {id:19,name:"Célin",group:"Témoins"},
-  {id:20,name:"Phrad",group:"Invité"},
-  {id:21,name:"Haingotiana",group:"Invité"},
-  {id:22,name:"Ilo",group:"Invité"},
-  {id:23,name:"Oliva",group:"Invité"},
-  {id:24,name:"Anthony",group:"Témoins"},
-  {id:25,name:"Charlotte",group:"Témoins"},
-  {id:27,name:"Larissa",group:"Prestataire"},
+  {id:1,name:"Anthony",group:"Couple"},{id:2,name:"Charlotte",group:"Couple"},
+  {id:3,name:"Ryan",group:"Famille"},{id:4,name:"Miangaly",group:"Famille"},
+  {id:5,name:"Nantenaina",group:"Famille"},{id:6,name:"Père Gaston",group:"Famille"},
+  {id:7,name:"Andoniaina",group:"Famille"},{id:8,name:"Michèle",group:"Famille"},
+  {id:9,name:"Ando",group:"Famille"},{id:10,name:"Toavina",group:"Famille"},
+  {id:11,name:"Rasanda",group:"Famille"},{id:12,name:"Tsiro",group:"Famille"},
+  {id:13,name:"Tinah",group:"Famille"},{id:14,name:"Toky",group:"Famille"},
+  {id:15,name:"Hayara",group:"Famille"},{id:16,name:"Alex",group:"Amis"},
+  {id:17,name:"Anteh",group:"Amis"},{id:18,name:"Salohy",group:"Amis"},
+  {id:19,name:"Célin",group:"Amis"},{id:20,name:"Phrad",group:"Amis"},
+  {id:21,name:"Haingotiana",group:"Amis"},{id:22,name:"Ilo",group:"Amis"},
+  {id:23,name:"Oliva",group:"Amis"},
 ];
 
-/* ─── Initial data ──────────────────────────────────────── */
-// ... gardez initGuests tel quel ...
-
-const initRooms = [
-  {
-    id: 1,
-    name: "Chambre bleue",
-    beds: [
-      { bedId: "b1-1", bedType: "Double", night1: ["Anthony", "Charlotte"], night2: ["Anthony", "Charlotte"] }
-    ]
-  },
-  {
-    id: 2,
-    name: "Chambre Elle",
-    beds: [
-      { bedId: "b2-1", bedType: "Double", night1: ["Ryan", "Lara"], night2: ["Ryan", "Lara"] }
-    ]
-  },
-  {
-    id: 3,
-    name: "Gite Rive droite",
-    beds: [
-      { bedId: "b3-1", bedType: "Double", night1: ["Miangaly", "Nantenaina"], night2: ["Miangaly", "Nantenaina"] },
-      { bedId: "b3-2", bedType: "Twin", night1: ["Père Gaston"], night2: ["Père Gaston"] },
-      { bedId: "b3-3", bedType: "Lit convertible", night1: ["Andoniaina"], night2: ["Andoniaina"] }
-    ]
-  },
-  {
-    id: 4,
-    name: "Gite Rive Gauche",
-    beds: [
-      { bedId: "b4-1", bedType: "Double", night1: ["Michèle", "Ando"], night2: ["Michèle", "Ando"] },
-      { bedId: "b4-2", bedType: "Twin", night1: ["Toavina", "Rasanda"], night2: ["Toavina", "Rasanda"] },
-      { bedId: "b4-3", bedType: "Lit convertible", night1: ["Tsiro"], night2: ["Tsiro"] }
-    ]
-  },
-  {
-    id: 5,
-    name: "Suite du Lac",
-    beds: [
-      { bedId: "b5-1", bedType: "Double", night1: ["Tinah", "Toky"], night2: ["Tinah", "Toky"] }
-    ]
-  },
-  {
-    id: 6,
-    name: "Suite or",
-    beds: [
-      { bedId: "b6-1", bedType: "Double", night1: ["Poun", "Phrad"], night2: ["Hayara"] },
-      { bedId: "b6-2", bedType: "Twin", night1: ["Oliva", "Ilo"], night2: ["Hayara"] }
-    ]
-  },
-  {
-    id: 7,
-    name: "Suite Vision",
-    beds: [
-      { bedId: "b7-1", bedType: "Double", night1: ["Maxime"], night2: ["Poun", "Phrad"] },
-      { bedId: "b7-2", bedType: "Twin", night1: [], night2: ["Oliva", "Ilo"] }
-    ]
-  },
-  {
-    id: 8,
-    name: "Suite Nuptiale",
-    beds: [
-      { bedId: "b8-1", bedType: "Twin", night1: ["Safidy"], night2: ["Safidy", "Maxime"] }
-    ]
-  }
+const initRooms=[
+  {id:1,name:"Chambre bleue",location:"",beds:[{bedId:"b1-1",bedType:"Double",guests:["Anthony","Charlotte"]}]},
+  {id:2,name:"Chambre Elle",location:"",beds:[{bedId:"b2-1",bedType:"Double",guests:["Ryan"]}]},
+  {id:3,name:"Gite Rive droite",location:"",beds:[
+    {bedId:"b3-1",bedType:"Double",guests:["Miangaly","Nantenaina"]},
+    {bedId:"b3-2",bedType:"Twin",guests:["Père Gaston"]},
+    {bedId:"b3-3",bedType:"Lit convertible",guests:["Andoniaina"]},
+  ]},
+  {id:4,name:"Gite Rive Gauche",location:"",beds:[
+    {bedId:"b4-1",bedType:"Double",guests:["Michèle","Ando"]},
+    {bedId:"b4-2",bedType:"Twin",guests:["Toavina","Rasanda"]},
+    {bedId:"b4-3",bedType:"Lit convertible",guests:["Tsiro"]},
+  ]},
+  {id:5,name:"Suite du Lac",location:"",beds:[{bedId:"b5-1",bedType:"Double",guests:["Tinah","Toky"]}]},
+  {id:6,name:"Suite familiale",location:"",beds:[{bedId:"b6-1",bedType:"Double + Twin",guests:["Hayara"]}]},
+  {id:7,name:"Suite or",location:"",beds:[
+    {bedId:"b7-1",bedType:"Twin",guests:["Alex","Anteh"]},
+    {bedId:"b7-2",bedType:"Double",guests:["Salohy","Célin"]},
+  ]},
+  {id:8,name:"Suite vision",location:"",beds:[
+    {bedId:"b8-1",bedType:"Lit convertible → Double",note:"Lit convertible nuit 1, lit double nuit 2 — Ilo rejoint ce lit la 2ème nuit",night1:["Phrad","Haingotiana"],night2:["Phrad","Haingotiana","Ilo"]},
+    {bedId:"b8-2",bedType:"Lit convertible",note:"Ilo part sur l'autre lit la 2ème nuit",night1:["Ilo","Oliva"],night2:["Oliva"]},
+  ]},
 ];
 
-// IMPORTANT : Pour mettre à jour votre base de données Firebase avec ces nouvelles chambres,
-// décommentez la ligne suivante, chargez la page une fois, puis re-commentez la.
-// pushInitialData();
-  // Fonction pour envoyer les données vers Firebase
-const pushInitialData = () => {
-  if (window._fb) {
-    window._fb.set("org/rooms", initRooms)
-      .then(() => alert("Données envoyées avec succès !"))
-      .catch(err => console.error("Erreur :", err));
-  } else {
-    alert("Firebase n'est pas encore prêt.");
-  }
-};
-
-// Appelez cette fonction une seule fois (ou via un bouton temporaire)
-// pushInitialData();
 const initTasks=[
   {id:1,title:"Arrivée des invités",assignee:"Anthony",category:"Organisation",status:"todo",note:"",date:"2026-07-14",startTime:"15:00",endTime:"18:00",location:"Entrée du domaine"},
   {id:2,title:"Dîner de répétition",assignee:"Michèle",category:"Traiteur",status:"todo",note:"",date:"2026-07-14",startTime:"19:30",endTime:"22:30",location:"Salle principale"},
@@ -207,6 +134,8 @@ const initTasks=[
   {id:5,title:"Cocktail",assignee:"Hayara",category:"Décoration",status:"todo",note:"Décoration florale",date:"2026-07-15",startTime:"15:30",endTime:"18:00",location:"Terrasse"},
   {id:6,title:"Dîner & Soirée",assignee:"Michèle",category:"Traiteur",status:"todo",note:"",date:"2026-07-15",startTime:"19:00",endTime:"23:59",location:"Salle de réception"},
 ];
+// Deep clone helper — évite que les tâches partagent des références
+function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
 
 const initProviders=[
   {id:1, name:"Pastoune",            category:"Traiteur / Restauration",   contact:"",email:"",note:"Foodtruck traiteur", status:"confirmed"},
@@ -284,19 +213,24 @@ function TasksTab({tasks,setTasks,guests,canEdit}){
   const [form,setForm]=useState(blank);
   const [filterDate,setFilterDate]=useState("all");
   const [filterPerson,setFilterPerson]=useState("all");
-  const [expandedId,setExpandedId]=useState(null);
+  // Toutes les tâches sont dépliées par défaut — Set des IDs repliés
+  const [collapsedIds,setCollapsedIds]=useState(new Set());
   const cats=["Organisation","Traiteur","Photographe","Fleuriste","Décoration","Lieu","Illustratrice","Autre"];
   const people=[...new Set(guests.map(g=>g.name))].sort();
 
-  const openNew=()=>{if(!canEdit)return;setEditT(null);setForm(blank);setShowModal(true);};
-  const openEdit=(t,e)=>{e.stopPropagation();if(!canEdit)return;setEditT(t);setForm({...t});setShowModal(true);};
+  const openNew=()=>{if(!canEdit)return;setEditT(null);setForm(deepClone(blank));setShowModal(true);};
+  // Deep clone pour éviter que la modification du formulaire impacte la tâche originale
+  const openEdit=(t,e)=>{e.stopPropagation();if(!canEdit)return;setEditT(t);setForm(deepClone(t));setShowModal(true);};
   const saveFn=()=>{
     if(!form.title.trim())return;
-    const updated=editT?tasks.map(t=>t.id===editT.id?{...form,id:editT.id}:t):[...tasks,{...form,id:Date.now()}];
+    const updated=editT
+      ? tasks.map(t=>t.id===editT.id ? deepClone({...form,id:editT.id}) : t)
+      : [...tasks,deepClone({...form,id:Date.now()})];
     setTasks(updated);lsSave(KEYS.tasks,updated);setShowModal(false);
   };
   const del=(id,e)=>{e.stopPropagation();const u=tasks.filter(t=>t.id!==id);setTasks(u);lsSave(KEYS.tasks,u);};
   const cycleStatus=(task,e)=>{e.stopPropagation();const c={todo:"inprogress",inprogress:"done",done:"todo"};const u=tasks.map(t=>t.id===task.id?{...t,status:c[t.status]}:t);setTasks(u);lsSave(KEYS.tasks,u);};
+  const toggleCollapse=(id)=>setCollapsedIds(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n;});
 
   // Get unique dates
   const dates=[...new Set(tasks.map(t=>t.date||"2026-07-15"))].sort();
@@ -379,7 +313,7 @@ function TasksTab({tasks,setTasks,guests,canEdit}){
 
             {dayTasks.map((task,i)=>{
               const cc=catColor(task.category);
-              const isExpanded=expandedId===task.id;
+              const isExpanded=!collapsedIds.has(task.id);
               return (
                 <div key={task.id} style={{position:"relative",marginBottom:"0.75rem",animation:`fadeIn 0.2s ease ${i*0.04}s both`}}>
                   {/* Time column */}
@@ -392,7 +326,7 @@ function TasksTab({tasks,setTasks,guests,canEdit}){
                   <div style={{position:"absolute",left:"-18px",top:"0.85rem",width:"12px",height:"12px",borderRadius:"50%",background:cc.dot,border:"2px solid white",boxShadow:"0 0 0 2px "+cc.dot+"44"}}/>
 
                   {/* Card */}
-                  <div onClick={()=>setExpandedId(isExpanded?null:task.id)}
+                  <div onClick={()=>toggleCollapse(task.id)}
                     style={{background:"white",borderRadius:"0.9rem",padding:"0.75rem 1rem",border:`1.5px solid ${cc.border}44`,borderLeft:`3px solid ${cc.border}`,cursor:"pointer",transition:"box-shadow 0.15s",boxShadow:isExpanded?"0 4px 16px rgba(0,0,0,0.08)":"none"}}>
 
                     <div style={{display:"flex",alignItems:"flex-start",gap:"0.6rem"}}>
@@ -767,7 +701,7 @@ function RoomsTab({rooms,setRooms,guests,canEdit}){
 /* ══════════════════════════════════════════════════════════
    GUESTS TAB
 ══════════════════════════════════════════════════════════ */
-const GROUPS=["Couple","Invité","Témoin","Prestataire","Autre"];
+const GROUPS=["Couple","Famille","Témoin","Amis","Prestataire","Autre"];
 const GROUP_COLORS={"Couple":"#fce8f5","Famille":"#e8f4fd","Témoin":"#fff0f0","Amis":"#e8f5e9","Prestataire":"#fef3e2","Autre":"#f5f5f5"};
 const GROUP_DOTS={"Couple":"#d45c9b","Famille":"#5b9ec9","Témoin":"#c4755a","Amis":"#3a9d5d","Prestataire":"#e6a020","Autre":"#999"};
 
@@ -903,14 +837,19 @@ function App(){
 
   useEffect(()=>{
     function attachListeners() {
-      window._fb.listen("org/tasks",    v => { if(v) setTasks(Array.isArray(v)?v:Object.values(v)); });
-      window._fb.listen("org/providers",v => { if(v) setProviders(Array.isArray(v)?v:Object.values(v)); });
-      window._fb.listen("org/rooms",    v => { if(v) setRooms(Array.isArray(v)?v:Object.values(v)); });
-      window._fb.listen("org/guests",   v => { if(v) setGuests(Array.isArray(v)?v:Object.values(v)); });
-      setLoaded(true);
+      // Compte combien de listeners ont répondu avant d'afficher
+      let ready=0;
+      const check=()=>{ready++;if(ready>=4)setLoaded(true);};
+      window._fb.listen("org/tasks",    v => { if(v){ const d=Array.isArray(v)?v:Object.values(v); if(d.length>0)setTasks(d); } check(); });
+      window._fb.listen("org/providers",v => { if(v){ const d=Array.isArray(v)?v:Object.values(v); if(d.length>0)setProviders(d); } check(); });
+      window._fb.listen("org/rooms",    v => { if(v){ const d=Array.isArray(v)?v:Object.values(v); if(d.length>0)setRooms(d); } check(); });
+      window._fb.listen("org/guests",   v => { if(v){ const d=Array.isArray(v)?v:Object.values(v); if(d.length>0)setGuests(d); } check(); });
     }
     if(window._fbReady){ attachListeners(); }
     else { window.addEventListener('fbReady', attachListeners, {once:true}); }
+    // Timeout de sécurité : si Firebase ne répond pas en 5s, on charge quand même
+    const t=setTimeout(()=>setLoaded(true),5000);
+    return ()=>clearTimeout(t);
   },[]);
 
   const daysLeft=Math.ceil((new Date("2026-07-15")-new Date())/86400000);
