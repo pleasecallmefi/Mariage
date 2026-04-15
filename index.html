@@ -810,15 +810,20 @@ function App(){
   const [loaded,setLoaded]=useState(false);
 
 useEffect(() => {
-  if (!tasks.length) return;
-
-  const fixed = tasks.map(t => ({
-    ...t,
-    id: t.id || crypto.randomUUID()
-  }));
-
-  setTasks(fixed);
-  lsSave(KEYS.tasks, fixed);
+   function attachListeners() {
+      // Compte combien de listeners ont répondu avant d'afficher
+      let ready=0;
+      const check=()=>{ready++;if(ready>=4)setLoaded(true);};
+      window._fb.listen("org/tasks",    v => { if(v){ const d=Array.isArray(v)?v:Object.values(v); if(d.length>0)setTasks(d); } check(); });
+      window._fb.listen("org/providers",v => { if(v){ const d=Array.isArray(v)?v:Object.values(v); if(d.length>0)setProviders(d); } check(); });
+      window._fb.listen("org/rooms",    v => { if(v){ const d=Array.isArray(v)?v:Object.values(v); if(d.length>0)setRooms(d); } check(); });
+      window._fb.listen("org/guests",   v => { if(v){ const d=Array.isArray(v)?v:Object.values(v); if(d.length>0)setGuests(d); } check(); });
+    }
+    if(window._fbReady){ attachListeners(); }
+    else { window.addEventListener('fbReady', attachListeners, {once:true}); }
+    // Timeout de sécurité : si Firebase ne répond pas en 5s, on charge quand même
+    const t=setTimeout(()=>setLoaded(true),5000);
+    return ()=>clearTimeout(t);
 }, []);
 
   const daysLeft=Math.ceil((new Date("2026-07-15")-new Date())/86400000);
