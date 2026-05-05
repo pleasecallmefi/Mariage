@@ -240,7 +240,16 @@ function TasksTab({tasks,setTasks,guests,canEdit}){
             </span>
           ))}
         </div>
-        {canEdit&&<button onClick={openNew} style={{...btnP,fontSize:"0.82rem",padding:"0.45rem 0.9rem"}}>+ Tâche</button>}
+href={canEdit
+    ? "https://docs.google.com/spreadsheets/d/1dNUQdj6gpy0QYZL3izpNS7LaM5y90kEBFRE-W5JkHc4/edit?usp=sharing"
+    : "https://docs.google.com/spreadsheets/d/1HJ83IIzkEXwju1U6_nKcdH8gE3x5EPAMZ2ivfVOSYb0/edit?usp=sharing"
+  }
+  target="_blank"
+  rel="noopener noreferrer"
+  style={{...btnS,fontSize:"0.82rem",padding:"0.45rem 0.9rem",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:"0.35rem"}}
+>
+  📊 Google Sheets
+</a>
       </div>
 
       {/* Planning grid */}
